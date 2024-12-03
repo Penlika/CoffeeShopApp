@@ -1,9 +1,9 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, TextInput, View, TouchableOpacity, Alert, ActivityIndicator} from 'react-native';
-import {COLORS, FONTSIZE, SPACING} from '../theme/theme';
+import React, { useState } from 'react';
+import { StyleSheet, Text, TextInput, View, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { COLORS, FONTSIZE, SPACING } from '../theme/theme';
 import auth from '@react-native-firebase/auth';
 
-const LoginScreen = ({navigation}) => {
+const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,41 +72,12 @@ const LoginScreen = ({navigation}) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: SPACING.space_20,
-  },
-  title: {
-    fontSize: FONTSIZE.size_24,
-    fontFamily: 'Poppins-Bold',
-    marginBottom: SPACING.space_20,
-    textAlign: 'center',
-  },
-  input: {
-    height: 45,
-    borderColor: COLORS.primaryGreyHex,
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: SPACING.space_10,
-    paddingLeft: SPACING.space_10,
-  },
-  button: {
-    backgroundColor: COLORS.primaryOrangeHex,
-    paddingVertical: SPACING.space_10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: COLORS.primaryWhiteHex,
-    fontSize: FONTSIZE.size_18,
-    fontFamily: 'Poppins-Semibold',
-  },
-  link: {
-    color: COLORS.primaryOrangeHex,
-    textAlign: 'center',
-    marginTop: SPACING.space_10,
-  },
+  container: { flex: 1, justifyContent: 'center', padding: SPACING.space_20 },
+  title: { fontSize: FONTSIZE.size_24, fontFamily: 'Poppins-Bold', marginBottom: SPACING.space_20, textAlign: 'center' },
+  input: { height: 45, borderColor: COLORS.primaryGreyHex, borderWidth: 1, borderRadius: 5, marginBottom: SPACING.space_10, paddingLeft: SPACING.space_10 },
+  button: { backgroundColor: COLORS.primaryOrangeHex, paddingVertical: SPACING.space_10, borderRadius: 5, alignItems: 'center' },
+  buttonText: { color: COLORS.primaryWhiteHex, fontSize: FONTSIZE.size_18, fontFamily: 'Poppins-Semibold' },
+  link: { color: COLORS.primaryOrangeHex, textAlign: 'center', marginTop: SPACING.space_10 },
 });
 
 export default LoginScreen;

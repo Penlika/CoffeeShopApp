@@ -8,15 +8,17 @@ import {
   Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore'; // Import Firestore
 import { COLORS, FONTSIZE, SPACING } from '../theme/theme';
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState(''); // New state for username
 
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (!email || !password || !confirmPassword || !username) {
       Alert.alert('Error', 'All fields are required.');
       return;
     }
@@ -27,7 +29,19 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
-      await auth().createUserWithEmailAndPassword(email, password);
+      // Create the user with Firebase Authentication
+      const userCredential = await auth().createUserWithEmailAndPassword(email, password);
+      
+      // Get the user info
+      const user = userCredential.user;
+      
+      // Create user data in Firestore
+      await firestore().collection('users').doc(user.uid).set({
+        username,
+        email,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      });
+
       Alert.alert('Success', 'Account created successfully!');
       navigation.navigate('Login'); // Redirect to Login screen after successful registration
     } catch (error) {
@@ -46,6 +60,12 @@ const RegisterScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Register</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Username"
+        value={username}
+        onChangeText={setUsername}
+      />
       <TextInput
         style={styles.input}
         placeholder="Email"

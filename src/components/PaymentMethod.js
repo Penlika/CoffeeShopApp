@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, Text, View, Image} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
 import {
   BORDERRADIUS,
   COLORS,
@@ -8,7 +9,6 @@ import {
   FONTSIZE,
   SPACING,
 } from '../theme/theme';
-import CustomIcon from './CustomIcon';
 
 const PaymentMethod = ({paymentMode, name, icon, isIcon}) => {
   return (
@@ -29,10 +29,10 @@ const PaymentMethod = ({paymentMode, name, icon, isIcon}) => {
           colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
           style={styles.LinearGradientWallet}>
           <View style={styles.WalletRow}>
-            <CustomIcon
-              name={'wallet'}
-              color={COLORS.primaryOrangeHex}
-              size={FONTSIZE.size_30}
+            <Icon
+              name="credit-card"
+              color={COLORS.primaryOrangeHex} // Use primary color for icon
+              size={FONTSIZE.size_30} // Adjust size as needed
             />
             <Text style={styles.PaymentTitle}>{name}</Text>
           </View>

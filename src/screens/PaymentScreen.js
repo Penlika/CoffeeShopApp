@@ -18,29 +18,29 @@ import GradientBGIcon from '../components/GradientBGIcon';
 import PaymentMethod from '../components/PaymentMethod';
 import PaymentFooter from '../components/PaymentFooter';
 import LinearGradient from 'react-native-linear-gradient';
-import CustomIcon from '../components/CustomIcon';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Example icon library import
 import {useStore} from '../store/store';
 import PopUpAnimation from '../components/PopUpAnimation';
 
 const PaymentList = [
   {
     name: 'Wallet',
-    icon: 'icon',
+    icon: 'wallet',
     isIcon: true,
   },
   {
     name: 'Google Pay',
-    icon: require('../assets/app_images/gpay.png'),
+    icon: 'google',
     isIcon: false,
   },
   {
     name: 'Apple Pay',
-    icon: require('../assets/app_images/applepay.png'),
+    icon: 'apple',
     isIcon: false,
   },
   {
     name: 'Amazon Pay',
-    icon: require('../assets/app_images/amazonpay.png'),
+    icon: 'amazon',
     isIcon: false,
   },
 ];
@@ -116,13 +116,13 @@ const PaymentScreen = ({navigation, route}) => {
                   style={styles.LinearGradientStyle}
                   colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}>
                   <View style={styles.CreditCardRow}>
-                    <CustomIcon
-                      name="chip"
+                    <Icon
+                      name="credit-card"
                       size={FONTSIZE.size_20 * 2}
                       color={COLORS.primaryOrangeHex}
                     />
-                    <CustomIcon
-                      name="visa"
+                    <Icon
+                      name="cc-visa"
                       size={FONTSIZE.size_30 * 2}
                       color={COLORS.primaryWhiteHex}
                     />

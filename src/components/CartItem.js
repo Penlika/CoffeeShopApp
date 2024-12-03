@@ -1,14 +1,8 @@
 import React from 'react';
 import {StyleSheet, Text, View, Image, TouchableOpacity} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  BORDERRADIUS,
-  COLORS,
-  FONTFAMILY,
-  FONTSIZE,
-  SPACING,
-} from '../theme/theme';
-import CustomIcon from './CustomIcon';
+import Icon from 'react-native-vector-icons/FontAwesome';
+import {BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING} from '../theme/theme';
 
 const CartItem = ({
   id,
@@ -21,16 +15,19 @@ const CartItem = ({
   incrementCartItemQuantityHandler,
   decrementCartItemQuantityHandler,
 }) => {
+  // Ensure prices is an array
+  const safePrices = Array.isArray(prices) ? prices : [prices];
+
   return (
     <View>
-      {prices.length !== 1 ? (
+      {safePrices.length !== 1 ? (
         <LinearGradient
           start={{x: 0, y: 0}}
           end={{x: 1, y: 1}}
           colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
           style={styles.CartItemLinearGradient}>
           <View style={styles.CartItemRow}>
-            <Image source={imagelink_square} style={styles.CartItemImage} />
+            <Image source={{ uri: imagelink_square }} style={styles.CartItemImage} />
             <View style={styles.CartItemInfo}>
               <View>
                 <Text style={styles.CartItemTitle}>{name}</Text>
@@ -43,7 +40,7 @@ const CartItem = ({
               </View>
             </View>
           </View>
-          {prices.map((data, index) => (
+          {safePrices.map((data, index) => (
             <View
               key={index.toString()}
               style={styles.CartItemSizeRowContainer}>
@@ -61,7 +58,7 @@ const CartItem = ({
                   </Text>
                 </View>
                 <Text style={styles.SizeCurrency}>
-                  {data.currency}
+                  {data.currency || '$'}
                   <Text style={styles.SizePrice}> {data.price}</Text>
                 </Text>
               </View>
@@ -71,7 +68,7 @@ const CartItem = ({
                   onPress={() => {
                     decrementCartItemQuantityHandler(id, data.size);
                   }}>
-                  <CustomIcon
+                  <Icon
                     name="minus"
                     color={COLORS.primaryWhiteHex}
                     size={FONTSIZE.size_10}
@@ -87,8 +84,8 @@ const CartItem = ({
                   onPress={() => {
                     incrementCartItemQuantityHandler(id, data.size);
                   }}>
-                  <CustomIcon
-                    name="add"
+                  <Icon
+                    name="plus"
                     color={COLORS.primaryWhiteHex}
                     size={FONTSIZE.size_10}
                   />
@@ -104,10 +101,7 @@ const CartItem = ({
           colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
           style={styles.CartItemSingleLinearGradient}>
           <View>
-            <Image
-              source={imagelink_square}
-              style={styles.CartItemSingleImage}
-            />
+            <Image source={{ uri: imagelink_square }} style={styles.CartItemImage} />
           </View>
           <View style={styles.CartItemSingleInfoContainer}>
             <View>
@@ -124,21 +118,21 @@ const CartItem = ({
                         type === 'Bean' ? FONTSIZE.size_12 : FONTSIZE.size_16,
                     },
                   ]}>
-                  {prices[0].size}
+                  {safePrices[0].size}
                 </Text>
               </View>
               <Text style={styles.SizeCurrency}>
-                {prices[0].currency}
-                <Text style={styles.SizePrice}> {prices[0].price}</Text>
+                {safePrices[0].currency || '$'}
+                <Text style={styles.SizePrice}> {safePrices[0].price}</Text>
               </Text>
             </View>
             <View style={styles.CartItemSingleQuantityContainer}>
               <TouchableOpacity
                 style={styles.CartItemIcon}
                 onPress={() => {
-                  decrementCartItemQuantityHandler(id, prices[0].size);
+                  decrementCartItemQuantityHandler(id, safePrices[0].size);
                 }}>
-                <CustomIcon
+                <Icon
                   name="minus"
                   color={COLORS.primaryWhiteHex}
                   size={FONTSIZE.size_10}
@@ -146,16 +140,16 @@ const CartItem = ({
               </TouchableOpacity>
               <View style={styles.CartItemQuantityContainer}>
                 <Text style={styles.CartItemQuantityText}>
-                  {prices[0].quantity}
+                  {safePrices[0].quantity}
                 </Text>
               </View>
               <TouchableOpacity
                 style={styles.CartItemIcon}
                 onPress={() => {
-                  incrementCartItemQuantityHandler(id, prices[0].size);
+                  incrementCartItemQuantityHandler(id, safePrices[0].size);
                 }}>
-                <CustomIcon
-                  name="add"
+                <Icon
+                  name="plus"
                   color={COLORS.primaryWhiteHex}
                   size={FONTSIZE.size_10}
                 />
@@ -167,6 +161,7 @@ const CartItem = ({
     </View>
   );
 };
+
 
 const styles = StyleSheet.create({
   CartItemLinearGradient: {

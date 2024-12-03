@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   StatusBar,
@@ -7,8 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import {useStore} from '../store/store';
-import {useBottomTabBarHeight} from '@react-navigation/bottom-tabs';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import {
   BORDERRADIUS,
   COLORS,
@@ -20,13 +19,53 @@ import HeaderBar from '../components/HeaderBar';
 import EmptyListAnimation from '../components/EmptyListAnimation';
 import PopUpAnimation from '../components/PopUpAnimation';
 import OrderHistoryCard from '../components/OrderHistoryCard';
+import firebase from '@react-native-firebase/app';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
-const OrderHistoryScreen = ({navigation}) => {
-  const OrderHistoryList = useStore(state => state.OrderHistoryList);
-  const tabBarHeight = useBottomTabBarHeight();
+const OrderHistoryScreen = ({ navigation }) => {
+  const [orderHistoryList, setOrderHistoryList] = useState([]); // state to hold order history data
   const [showAnimation, setShowAnimation] = useState(false);
+  const tabBarHeight = useBottomTabBarHeight();
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const navigationHandler = ({index, id, type}) => {
+  useEffect(() => {
+    const user = auth().currentUser;
+    if (user) {
+      const unsubscribe = firestore()
+        .collection('users')
+        .doc(user.uid)
+        .onSnapshot((doc) => {
+          if (doc.exists) {
+            const userData = doc.data();
+            setIsDarkMode(userData?.mode === 'dark');
+          }
+        });
+
+      return () => unsubscribe();
+    }
+  }, []);
+  // Fetch order history from Firestore
+  useEffect(() => {
+    const fetchOrderHistory = async () => {
+      try {
+        const userId = 'user-id'; // Replace with actual user ID
+        const ordersSnapshot = await firestore()
+          .collection('orders')
+          .where('userId', '==', userId) // Assuming the order collection has userId field
+          .get();
+
+        const ordersData = ordersSnapshot.docs.map(doc => doc.data());
+        setOrderHistoryList(ordersData); // Set data to state
+      } catch (error) {
+        console.error('Error fetching order history:', error);
+      }
+    };
+
+    fetchOrderHistory();
+  }, []); // Empty dependency array to fetch only once on mount
+
+  const navigationHandler = ({ index, id, type }) => {
     navigation.push('Details', {
       index,
       id,
@@ -42,8 +81,8 @@ const OrderHistoryScreen = ({navigation}) => {
   };
 
   return (
-    <View style={styles.ScreenContainer}>
-      <StatusBar backgroundColor={COLORS.primaryBlackHex} />
+    <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
+      <StatusBar backgroundColor={isDarkMode ? COLORS.primaryBlackHex : COLORS.primaryWhiteHex} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
       {showAnimation ? (
         <PopUpAnimation
@@ -52,19 +91,16 @@ const OrderHistoryScreen = ({navigation}) => {
         />
       ) : null}
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.ScrollViewFlex}>
-        <View
-          style={[styles.ScrollViewInnerView, {marginBottom: tabBarHeight}]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.ScrollViewFlex}>
+        <View style={[styles.ScrollViewInnerView, { marginBottom: tabBarHeight }]}>
           <View style={styles.ItemContainer}>
             <HeaderBar title="Order History" />
 
-            {OrderHistoryList.length === 0 ? (
+            {orderHistoryList.length === 0 ? (
               <EmptyListAnimation title="No Order History" />
             ) : (
               <View style={styles.ListItemContainer}>
-                {OrderHistoryList.map((data, index) => (
+                {orderHistoryList.map((data, index) => (
                   <OrderHistoryCard
                     key={index.toString()}
                     navigationHandler={navigationHandler}
@@ -76,10 +112,8 @@ const OrderHistoryScreen = ({navigation}) => {
               </View>
             )}
           </View>
-          {OrderHistoryList.length > 0 && (
-            <TouchableOpacity
-              style={styles.DownloadButton}
-              onPress={buttonPressHandler}>
+          {orderHistoryList.length > 0 && (
+            <TouchableOpacity style={styles.DownloadButton} onPress={buttonPressHandler}>
               <Text style={styles.ButtonText}>Download</Text>
             </TouchableOpacity>
           )}

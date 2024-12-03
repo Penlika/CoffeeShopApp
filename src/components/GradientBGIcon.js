@@ -1,8 +1,8 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {COLORS, SPACING} from '../theme/theme';
-import CustomIcon from './CustomIcon';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
 
 const GradientBGIcon = ({name, color, size}) => {
   return (
@@ -12,7 +12,7 @@ const GradientBGIcon = ({name, color, size}) => {
         end={{x: 1, y: 1}}
         colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
         style={styles.LinearGradientBG}>
-        <CustomIcon name={name} color={color} size={size} />
+        <Icon name={name} color={color} size={size} />
       </LinearGradient>
     </View>
   );
@@ -22,17 +22,19 @@ const styles = StyleSheet.create({
   Container: {
     borderWidth: 2,
     borderColor: COLORS.secondaryDarkGreyHex,
-    borderRadius: SPACING.space_12,
+    borderRadius: SPACING.space_12, // Makes the container rounded
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.secondaryDarkGreyHex,
     overflow: 'hidden',
+    height: SPACING.space_36, // Adjusted height for the icon
+    width: SPACING.space_36, // Adjusted width for the icon
   },
   LinearGradientBG: {
-    height: SPACING.space_36,
-    width: SPACING.space_36,
+    flex: 1, // Ensures the gradient fills the container
     alignItems: 'center',
     justifyContent: 'center',
+    borderRadius: SPACING.space_12, // Rounded corners for the gradient
   },
 });
 

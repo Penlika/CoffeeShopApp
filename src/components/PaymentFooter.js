@@ -1,5 +1,5 @@
 import React from 'react';
-import {StyleSheet, Text, View, TouchableOpacity} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import {
   BORDERRADIUS,
   COLORS,
@@ -8,18 +8,23 @@ import {
   SPACING,
 } from '../theme/theme';
 
-const PaymentFooter = ({price, buttonPressHandler, buttonTitle}) => {
+const PaymentFooter = ({ price, buttonPressHandler, buttonTitle }) => {
+  // Fallback for price.currency and price.price in case they are null or undefined
+  const currency = '$'; // Default to 'USD' if currency is missing
+  const priceAmount = price?.price || '0.00'; // Default to '0.00' if price is missing
+
   return (
     <View style={styles.PriceFooter}>
       <View style={styles.PriceContainer}>
         <Text style={styles.PriceTitle}>Price</Text>
         <Text style={styles.PriceText}>
-          {price.currency} <Text style={styles.Price}>{price.price}</Text>
+          {currency} <Text style={styles.Price}>{priceAmount}</Text>
         </Text>
       </View>
       <TouchableOpacity
         style={styles.PayButton}
-        onPress={() => buttonPressHandler()}>
+        onPress={() => buttonPressHandler()}
+      >
         <Text style={styles.ButtonText}>{buttonTitle}</Text>
       </TouchableOpacity>
     </View>

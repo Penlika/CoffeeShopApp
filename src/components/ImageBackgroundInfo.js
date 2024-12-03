@@ -1,27 +1,15 @@
-import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  ImageBackground,
-} from 'react-native';
-import GradientBGIcon from './GradientBGIcon';
-import {
-  BORDERRADIUS,
-  COLORS,
-  FONTFAMILY,
-  FONTSIZE,
-  SPACING,
-} from '../theme/theme';
-import CustomIcon from './CustomIcon';
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
+import firestore from '@react-native-firebase/firestore'; // Firestore integration
+import auth from '@react-native-firebase/auth'; // Firebase Auth integration
+import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
 
 const ImageBackgroundInfo = ({
   EnableBackHandler,
   imagelink_portrait,
   type,
   id,
-  favourite,
   name,
   special_ingredient,
   ingredients,
@@ -29,49 +17,102 @@ const ImageBackgroundInfo = ({
   ratings_count,
   roasted,
   BackHandler,
-  ToggleFavourite,
 }) => {
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  // Fetch the current favorite status for the item
+  useEffect(() => {
+    const fetchFavoriteStatus = async () => {
+      try {
+        const currentUser = auth().currentUser;
+
+        if (!currentUser) {
+          console.error('No user is currently logged in.');
+          return;
+        }
+
+        const userId = currentUser.uid;
+        const favoriteRef = firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('favorites')
+          .doc(id);
+
+        const doc = await favoriteRef.get();
+        setIsFavorite(doc.exists); // Check if the item is already a favorite
+      } catch (error) {
+        console.error('Error fetching favorite status:', error);
+      }
+    };
+
+    fetchFavoriteStatus();
+  }, [id]);
+
+  // Toggle favorite status
+  const handleToggleFavorite = async () => {
+    try {
+      const currentUser = auth().currentUser;
+
+      if (!currentUser) {
+        console.error('No user is currently logged in.');
+        return;
+      }
+
+      const userId = currentUser.uid;
+      const favoriteRef = firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('favorites')
+        .doc(id);
+
+      if (isFavorite) {
+        // Remove from favorites
+        await favoriteRef.delete();
+        setIsFavorite(false);
+      } else {
+        // Add to favorites
+        await favoriteRef.set({
+          name,
+          imagelink_square: imagelink_portrait,
+          special_ingredient,
+          roasted,
+          type,
+          timestamp: firestore.FieldValue.serverTimestamp(),
+        });
+        setIsFavorite(true);
+      }
+    } catch (error) {
+      console.error('Error updating favorites:', error);
+    }
+  };
+
   return (
     <View>
       <ImageBackground
-        source={imagelink_portrait}
-        style={styles.ItemBackgroundImage}>
+        source={{ uri: imagelink_portrait }}
+        style={styles.ItemBackgroundImage}
+        imageStyle={styles.ImageBackgroundStyle}
+        resizeMode="cover"
+      >
         {EnableBackHandler ? (
           <View style={styles.ImageHeaderBarContainerWithBack}>
-            <TouchableOpacity
-              onPress={() => {
-                BackHandler();
-              }}>
-              <GradientBGIcon
-                name="left"
-                color={COLORS.primaryLightGreyHex}
-                size={FONTSIZE.size_16}
-              />
+            <TouchableOpacity onPress={() => BackHandler()}>
+              <Icon name="arrow-left" color={COLORS.primaryLightGreyHex} size={FONTSIZE.size_16} />
             </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => {
-                ToggleFavourite(favourite, type, id);
-              }}>
-              <GradientBGIcon
-                name="like"
-                color={
-                  favourite ? COLORS.primaryRedHex : COLORS.primaryLightGreyHex
-                }
+            <TouchableOpacity onPress={handleToggleFavorite}>
+              <Icon
+                name="heart"
+                color={isFavorite ? COLORS.primaryRedHex : COLORS.primaryLightGreyHex}
                 size={FONTSIZE.size_16}
               />
             </TouchableOpacity>
           </View>
         ) : (
           <View style={styles.ImageHeaderBarContainerWithoutBack}>
-            <TouchableOpacity
-              onPress={() => {
-                ToggleFavourite(favourite, type, id);
-              }}>
-              <GradientBGIcon
-                name="like"
-                color={
-                  favourite ? COLORS.primaryRedHex : COLORS.primaryLightGreyHex
-                }
+            <TouchableOpacity onPress={handleToggleFavorite}>
+              <Icon
+                name="heart"
+                color={isFavorite ? COLORS.primaryRedHex : COLORS.primaryLightGreyHex}
                 size={FONTSIZE.size_16}
               />
             </TouchableOpacity>
@@ -83,14 +124,12 @@ const ImageBackgroundInfo = ({
             <View style={styles.InfoContainerRow}>
               <View>
                 <Text style={styles.ItemTitleText}>{name}</Text>
-                <Text style={styles.ItemSubtitleText}>
-                  {special_ingredient}
-                </Text>
+                <Text style={styles.ItemSubtitleText}>{special_ingredient}</Text>
               </View>
               <View style={styles.ItemPropertiesContainer}>
                 <View style={styles.ProperFirst}>
-                  <CustomIcon
-                    name={type === 'Bean' ? 'bean' : 'beans'}
+                  <Icon
+                    name={type === 'Bean' ? 'coffee' : 'leaf'}
                     size={type === 'Bean' ? FONTSIZE.size_18 : FONTSIZE.size_24}
                     color={COLORS.primaryOrangeHex}
                   />
@@ -98,18 +137,16 @@ const ImageBackgroundInfo = ({
                     style={[
                       styles.PropertyTextFirst,
                       {
-                        marginTop:
-                          type === 'Bean'
-                            ? SPACING.space_4 + SPACING.space_2
-                            : 0,
+                        marginTop: type === 'Bean' ? SPACING.space_4 + SPACING.space_2 : 0,
                       },
-                    ]}>
+                    ]}
+                  >
                     {type}
                   </Text>
                 </View>
                 <View style={styles.ProperFirst}>
-                  <CustomIcon
-                    name={type === 'Bean' ? 'location' : 'drop'}
+                  <Icon
+                    name={type === 'Bean' ? 'map-marker' : 'tint'}
                     size={FONTSIZE.size_16}
                     color={COLORS.primaryOrangeHex}
                   />
@@ -119,11 +156,7 @@ const ImageBackgroundInfo = ({
             </View>
             <View style={styles.InfoContainerRow}>
               <View style={styles.RatingContainer}>
-                <CustomIcon
-                  name={'star'}
-                  color={COLORS.primaryOrangeHex}
-                  size={FONTSIZE.size_20}
-                />
+                <Icon name="star" color={COLORS.primaryOrangeHex} size={FONTSIZE.size_20} />
                 <Text style={styles.RatingText}>{average_rating}</Text>
                 <Text style={styles.RatingCountText}>({ratings_count})</Text>
               </View>
@@ -138,11 +171,15 @@ const ImageBackgroundInfo = ({
   );
 };
 
+
 const styles = StyleSheet.create({
   ItemBackgroundImage: {
     width: '100%',
-    aspectRatio: 20 / 25,
+    aspectRatio: 20 / 25, // Maintains the aspect ratio
     justifyContent: 'space-between',
+  },
+  ImageBackgroundStyle: {
+    borderRadius: BORDERRADIUS.radius_20, // Rounds the image corners
   },
   ImageHeaderBarContainerWithBack: {
     padding: SPACING.space_30,

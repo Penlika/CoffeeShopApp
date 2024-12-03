@@ -8,43 +8,38 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import {
-  BORDERRADIUS,
-  COLORS,
-  FONTFAMILY,
-  FONTSIZE,
-  SPACING,
-} from '../theme/theme';
-import CustomIcon from './CustomIcon';
-import BGIcon from './BGIcon';
+import Icon from 'react-native-vector-icons/FontAwesome'; // Importing FontAwesome icons
+import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.32;
 
 const CoffeeCard = ({
   id,
   index,
-  type,
-  roasted,
+  type = 'Unknown', // Default fallback for `type`
+  roasted = 'N/A', // Default fallback for `roasted`
   imagelink_square,
-  name,
-  special_ingredient,
-  average_rating,
-  price,
+  name = 'Unknown', // Default fallback for `name`
+  special_ingredient = 'Unknown', // Default fallback for `special_ingredient`
+  average_rating = 0, // Default fallback for `average_rating`
+  price = { price: '0.00' }, // Default fallback for `price`
   buttonPressHandler,
 }) => {
+  const priceValue = price?.price || '0.00'; // Ensure fallback for `priceValue`
+
   return (
     <LinearGradient
-      start={{x: 0, y: 0}}
-      end={{x: 1, y: 1}}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
       style={styles.CardLinearGradientContainer}
       colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}>
       <ImageBackground
-        source={imagelink_square}
+        source={imagelink_square ? { uri: imagelink_square } : null} // Show nothing if the image link is invalid
         style={styles.CardImageBG}
         resizeMode="cover">
         <View style={styles.CardRatingContainer}>
-          <CustomIcon
-            name={'star'}
+          <Icon
+            name="star"
             color={COLORS.primaryOrangeHex}
             size={FONTSIZE.size_16}
           />
@@ -55,7 +50,7 @@ const CoffeeCard = ({
       <Text style={styles.CardSubtitle}>{special_ingredient}</Text>
       <View style={styles.CardFooterRow}>
         <Text style={styles.CardPriceCurrency}>
-          $ <Text style={styles.CardPrice}>{price.price}</Text>
+          $ <Text style={styles.CardPrice}>{priceValue}</Text>
         </Text>
         <TouchableOpacity
           onPress={() => {
@@ -67,15 +62,16 @@ const CoffeeCard = ({
               imagelink_square,
               name,
               special_ingredient,
-              prices: [{...price, quantity: 1}],
+              prices: [{ ...price, quantity: 1 }], // Ensure `prices` has a valid structure
             });
           }}>
-          <BGIcon
-            color={COLORS.primaryWhiteHex}
-            name={'add'}
-            BGColor={COLORS.primaryOrangeHex}
-            size={FONTSIZE.size_10}
-          />
+          <View style={styles.AddButtonContainer}>
+            <Icon
+              name="plus"
+              color={COLORS.primaryWhiteHex}
+              size={FONTSIZE.size_10}
+            />
+          </View>
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -136,6 +132,13 @@ const styles = StyleSheet.create({
   },
   CardPrice: {
     color: COLORS.primaryWhiteHex,
+  },
+  AddButtonContainer: {
+    backgroundColor: COLORS.primaryOrangeHex,
+    borderRadius: SPACING.space_12,
+    padding: SPACING.space_6,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
