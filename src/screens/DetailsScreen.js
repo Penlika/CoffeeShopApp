@@ -241,32 +241,33 @@ const DetailScreen = ({ navigation }) => {
         const docSnapshot = await docRef.get();
   
         if (docSnapshot.exists) {
-          const data = docSnapshot.data();
-          const currentRatings = data.ratings || {};
-          const existingRating = currentRatings[userId];
-  
-          // Fetch all ratings for this item
+          // Fetch all comments and ratings for this item
           const commentsSnapshot = await firestore()
             .collection(targetCollection)
             .doc(id)
             .collection('CommentsAndRatings')
             .get();
   
-          const allRatings = commentsSnapshot.docs
-            .map(doc => doc.data())
-            .filter(comment => comment.rating > 0);
+          const allComments = commentsSnapshot.docs.map(doc => doc.data());
+          
+          // Find the user's existing comment/rating
+          const userExistingComment = allComments.find(comment => comment.userId === userId);
   
-          // Recalculate ratings
-          let updatedRatingsCount = allRatings.length;
-          let updatedAverageRating = allRatings.length > 0 
-            ? allRatings.reduce((sum, comment) => sum + comment.rating, 0) / updatedRatingsCount
+          // Prepare the list of ratings, excluding the current user's previous rating
+          const otherRatings = allComments.filter(comment => 
+            comment.userId !== userId && comment.rating > 0
+          );
+  
+          // Calculate new average rating
+          const newRatings = [...otherRatings, { rating: pendingRating }];
+          const updatedAverageRating = newRatings.length > 0 
+            ? newRatings.reduce((sum, comment) => sum + comment.rating, 0) / newRatings.length
             : 0;
   
           // Prepare update object
           const updateData = {
-            [`ratings.${userId}`]: pendingRating,
             average_rating: updatedAverageRating,
-            ratings_count: updatedRatingsCount
+            ratings_count: newRatings.length
           };
   
           // Update the document
@@ -367,66 +368,61 @@ const DetailScreen = ({ navigation }) => {
   
       const targetCollection = beverage.type;
       const docRef = firestore().collection(targetCollection).doc(id);
-      const docSnapshot = await docRef.get();
   
-      if (docSnapshot.exists) {
-        const data = docSnapshot.data();
-        const currentRatings = data.ratings || {};
-        const currentRatingsCount = data.ratings_count || 0;
-        const currentAverageRating = data.average_rating || 0;
-        const existingRating = currentRatings[userId];
+      // Fetch all comments
+      const commentsSnapshot = await firestore()
+        .collection(targetCollection)
+        .doc(id)
+        .collection('CommentsAndRatings')
+        .get();
   
-        let updatedRatingsCount = currentRatingsCount;
-        let updatedAverageRating = currentAverageRating;
+      const allComments = commentsSnapshot.docs.map(doc => ({
+        ...doc.data(),
+        commentId: doc.id
+      }));
   
-        // If the user had a rating, recalculate average and count
-        if (existingRating) {
-          updatedRatingsCount -= 1;
-          
-          // Recalculate average rating, handling the case when no ratings remain
-          if (updatedRatingsCount > 0) {
-            updatedAverageRating = 
-              (currentAverageRating * currentRatingsCount - existingRating) / updatedRatingsCount;
-          } else {
-            updatedAverageRating = 0;
-          }
-        }
+      // Remove the user's comment
+      const updatedComments = allComments.filter(comment => comment.userId !== userId);
   
-        // Update the main document with new ratings information
-        await docRef.update({
-          [`ratings.${userId}`]: firestore.FieldValue.delete(),
-          average_rating: updatedAverageRating,
-          ratings_count: updatedRatingsCount,
-        });
+      // Recalculate ratings
+      const validRatings = updatedComments.filter(comment => comment.rating > 0);
+      const updatedAverageRating = validRatings.length > 0 
+        ? validRatings.reduce((sum, comment) => sum + comment.rating, 0) / validRatings.length
+        : 0;
   
-        // Update local state
-        setUserRating(updatedAverageRating);
-        setUserHasCommented(false);
-        setUserComment(null);
-        setPendingRating(0);
+      // Update the main document
+      await docRef.update({
+        average_rating: updatedAverageRating,
+        ratings_count: validRatings.length
+      });
   
-        // Refresh comments list
-        const commentsSnapshot = await firestore()
-          .collection(targetCollection)
-          .doc(id)
-          .collection('CommentsAndRatings')
-          .get();
+      // Delete the user's comment document
+      const userCommentQuery = await firestore()
+        .collection(targetCollection)
+        .doc(id)
+        .collection('CommentsAndRatings')
+        .where('userId', '==', userId)
+        .get();
   
-        const allCommentsAndRatings = commentsSnapshot.docs.map(doc => ({
-          ...doc.data(),
-          commentId: doc.id
-        }));
-  
-        const sortedComments = allCommentsAndRatings.sort((a, b) => {
-          const currentUserId = auth().currentUser?.uid;
-          if (a.userId === currentUserId) return -1;
-          if (b.userId === currentUserId) return 1;
-          return 0;
-        });
-        
-        setComments(sortedComments);
-  
+      if (!userCommentQuery.empty) {
+        await userCommentQuery.docs[0].ref.delete();
       }
+  
+      // Sort comments
+      const sortedComments = updatedComments.sort((a, b) => {
+        const currentUserId = auth().currentUser?.uid;
+        if (a.userId === currentUserId) return -1;
+        if (b.userId === currentUserId) return 1;
+        return 0;
+      });
+  
+      // Update local state
+      setComments(sortedComments);
+      setUserRating(updatedAverageRating);
+      setUserHasCommented(false);
+      setUserComment(null);
+      setPendingRating(0);
+  
     } catch (error) {
       console.error('Error deleting comment and rating:', error);
     }

@@ -1,10 +1,10 @@
 {
-    "profile": "Profile",
-    "accountSettings": "Account Settings",
-    "helpSupport": "Help & Support",
-    "logout": "Logout",
-    "selectLanguage": "Select Language",
-    "lightMode": "Light Mode",
-    "darkMode": "Dark Mode"
-  }
-  
+  "profile": "Profile",
+  "accountSettings": "Account Settings",
+  "helpSupport": "Help & Support",
+  "logout": "Logout",
+  "selectLanguage": "Select Language",
+  "light": "Light Mode",
+  "dark": "Dark Mode",
+  "switch_to_mode": "Switch to {{mode}}"
+}

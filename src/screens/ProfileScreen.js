@@ -4,59 +4,36 @@ import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { useNavigation } from '@react-navigation/native';
 import { Appearance } from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { Picker } from '@react-native-picker/picker';
 import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
-import { Picker } from '@react-native-picker/picker'; // Correct import
 
 const ProfileScreen = () => {
+  const { t, i18n } = useTranslation(); // Use the useTranslation hook
   const [profileData, setProfileData] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
-  const [selectedLanguage, setSelectedLanguage] = useState('english'); // Default language
+  const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default language
   const navigation = useNavigation();
 
   useEffect(() => {
     const user = auth().currentUser;
     if (user) {
-      // Real-time listener to fetch and update profile data
       const unsubscribe = firestore()
         .collection('users')
         .doc(user.uid)
         .onSnapshot((doc) => {
           if (doc.exists) {
             setProfileData(doc.data());
-            setSelectedLanguage(doc.data()?.language || 'english');
+            setSelectedLanguage(doc.data()?.language || 'en');
             setIsDarkMode(doc.data()?.mode === 'dark');
           } else {
-            console.log('No user data found!');
             setProfileData(null);
           }
         });
 
-      // Clean up listener when component unmounts
       return () => unsubscribe();
     }
   }, []);
-
-  const handleLogout = async () => {
-    try {
-      await auth().signOut();
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Login' }],
-      });
-    } catch (error) {
-      console.error("Error logging out: ", error);
-      Alert.alert('Logout Failed', 'There was an error logging out. Please try again.');
-    }
-  };
-
-  const handleHelpSupport = () => {
-    Alert.alert('Help & Support', 'Contact us at support@yourapp.com');
-  };
-
-  const handleAccountSettings = () => {
-    navigation.navigate('AccountSettings');
-  };
-
   const handleThemeModeChange = async (newMode) => {
     const user = auth().currentUser;
     if (user) {
@@ -67,46 +44,47 @@ const ProfileScreen = () => {
     }
     setIsDarkMode(newMode === 'dark');
   };
-
   const handleLanguageChange = async (newLanguage) => {
     const user = auth().currentUser;
     if (user) {
-      // Update the user document in Firestore with the selected language
       await firestore().collection('users').doc(user.uid).update({
-        language: newLanguage, // Set the language preference
+        language: newLanguage,
       });
     }
     setSelectedLanguage(newLanguage);
+    i18n.changeLanguage(newLanguage); // Update i18n language
   };
 
   return (
     <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
       <ScrollView contentContainerStyle={styles.ScrollViewFlex}>
-        <Text style={styles.ScreenTitle}>Profile</Text>
+        <Text style={styles.ScreenTitle}>{t('profile')}</Text>
 
         {/* Profile Picture */}
         <View style={styles.ProfilePicContainer}>
           {profileData?.profilePic ? (
             <Image source={{ uri: profileData.profilePic }} style={styles.ProfilePic} />
           ) : (
-            <Text style={styles.ProfilePicPlaceholder}>No Profile Picture</Text>
+            <Text style={styles.ProfilePicPlaceholder}>{t('no_profile_picture')}</Text>
           )}
         </View>
 
-        <View style={styles.ButtonContainer}>
-          <TouchableOpacity style={styles.Button} onPress={handleAccountSettings}>
-            <Text style={styles.ButtonText}>Account Settings</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.Button} onPress={handleHelpSupport}>
-            <Text style={styles.ButtonText}>Help & Support</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.Button} onPress={handleLogout}>
-            <Text style={styles.ButtonText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.Button} onPress={() => navigation.navigate('AccountSettings')}>
+          <Text style={styles.ButtonText}>{t('accountSettings')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.Button} onPress={() => Alert.alert(t('helpSupport'), 'support@yourapp.com')}>
+          <Text style={styles.ButtonText}>{t('helpSupport')}</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.Button} onPress={() => auth().signOut()}>
+          <Text style={styles.ButtonText}>{t('logout')}</Text>
+        </TouchableOpacity>
 
         <View style={styles.ModeSwitchContainer}>
-          <Text style={styles.ModeSwitchText}>Switch to {isDarkMode ? 'Light' : 'Dark'} Mode</Text>
+          <Text style={styles.ModeSwitchText}>
+            {t('switch_to_mode', { mode: isDarkMode ? t('lightMode') : t('darkMode') })}
+          </Text>
           <Switch
             value={isDarkMode}
             onValueChange={() => handleThemeModeChange(isDarkMode ? 'light' : 'dark')}
@@ -115,18 +93,16 @@ const ProfileScreen = () => {
           />
         </View>
 
-        {/* Language Dropdown */}
         <View style={styles.LanguageContainer}>
-          <Text style={styles.LanguageText}>Select Language</Text>
+          <Text style={styles.LanguageText}>{t('selectLanguage')}</Text>
           <Picker
             selectedValue={selectedLanguage}
             style={styles.LanguagePicker}
             onValueChange={(itemValue) => handleLanguageChange(itemValue)}
           >
-            <Picker.Item label="English" value="english" />
-            <Picker.Item label="Spanish" value="spanish" />
-            <Picker.Item label="French" value="french" />
-            {/* Add more languages as needed */}
+            <Picker.Item label={t('english')} value="en" />
+            <Picker.Item label={t('spanish')} value="es" />
+            <Picker.Item label={t('french')} value="fr" />
           </Picker>
         </View>
       </ScrollView>

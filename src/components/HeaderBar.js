@@ -1,20 +1,24 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import { COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
-import ProfilePic from './ProfilePic';
+import ProfilePic from './ProfilePic'; // Ensure ProfilePic component is correctly implemented
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/MaterialIcons'; // Importing FontAwesome icons
+import Icon from 'react-native-vector-icons/MaterialIcons';
+
 const HeaderBar = ({ title, navigation }) => {
   return (
     <View style={styles.HeaderContainer}>
       <View style={styles.Container}>
-        <LinearGradient
-          start={{x: 0, y: 0}}
-          end={{x: 1, y: 1}}
-          colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
-          style={styles.LinearGradientBG}>
-          <Icon name="menu" color={COLORS.primaryLightGreyHex} size={FONTSIZE.size_16} />
-        </LinearGradient>
+        {/* Touchable to open Drawer */}
+        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+          <LinearGradient
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
+            style={styles.LinearGradientBG}>
+            <Icon name="menu" color={COLORS.primaryLightGreyHex} size={FONTSIZE.size_16 || 16} />
+          </LinearGradient>
+        </TouchableOpacity>
       </View>
       <Text style={styles.HeaderText}>{title}</Text>
       {/* Pass navigation prop to ProfilePic */}
@@ -38,19 +42,19 @@ const styles = StyleSheet.create({
   Container: {
     borderWidth: 2,
     borderColor: COLORS.secondaryDarkGreyHex,
-    borderRadius: SPACING.space_12, // Makes the container rounded
+    borderRadius: SPACING.space_12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.secondaryDarkGreyHex,
     overflow: 'hidden',
-    height: SPACING.space_36, // Adjusted height for the icon
-    width: SPACING.space_36, // Adjusted width for the icon
+    height: SPACING.space_36,
+    width: SPACING.space_36,
   },
   LinearGradientBG: {
-    flex: 1, // Ensures the gradient fills the container
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: SPACING.space_12, // Rounded corners for the gradient
+    borderRadius: SPACING.space_12,
   },
 });
 

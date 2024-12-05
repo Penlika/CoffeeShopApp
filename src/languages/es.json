@@ -1,10 +1,10 @@
 {
-    "profile": "Perfil",
-    "accountSettings": "Configuración de la cuenta",
-    "helpSupport": "Ayuda y soporte",
-    "logout": "Cerrar sesión",
-    "selectLanguage": "Seleccionar idioma",
-    "lightMode": "Modo claro",
-    "darkMode": "Modo oscuro"
-  }
-  
+  "profile": "Perfil",
+  "accountSettings": "Configuración de la cuenta",
+  "helpSupport": "Ayuda y soporte",
+  "logout": "Cerrar sesión",
+  "selectLanguage": "Seleccionar idioma",
+  "light": "Modo claro",
+  "dark": "Modo oscuro",
+  "switch_to_mode": "Cambiar a {{mode}}"
+}

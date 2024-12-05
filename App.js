@@ -1,18 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createDrawerNavigator } from '@react-navigation/drawer'; // Import Drawer Navigator
 import auth from '@react-native-firebase/auth';
 import SplashScreen from 'react-native-splash-screen';
 import TabNavigator from './src/navigators/TabNavigator';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
-
-// Import Firebase app
+import CustomDrawerContent from './src/components/DrawerContent'; // Create this component
+import i18next from './src/languages/i18n';
+import { I18nextProvider } from 'react-i18next';
 import firebase from '@react-native-firebase/app';
-
-// Import i18next and i18n config
-import './src/languages/i18n'; // Ensure this path is correct based on where you save your i18n.js
+import './src/languages/i18n';
+import 'react-native-gesture-handler';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyAaK_2739wqm928C0f7rIq5-6zdLmO2-b8',
@@ -28,14 +29,26 @@ if (!firebase.apps.length) {
 }
 
 const Stack = createNativeStackNavigator();
+const Drawer = createDrawerNavigator(); // Create Drawer Navigator
+
+const DrawerNavigator = () => (
+  <Drawer.Navigator
+    drawerContent={(props) => <CustomDrawerContent {...props} />}
+    screenOptions={{
+      headerShown: false,
+      drawerType: 'slide',
+    }}
+  >
+    <Drawer.Screen name="MainTab" component={TabNavigator} />
+  </Drawer.Navigator>
+);
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(null); // Use null to indicate unknown state initially
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
 
   useEffect(() => {
     SplashScreen.hide();
 
-    // Check if the user is already logged in or not on app start
     const checkLoginStatus = async () => {
       const user = auth().currentUser;
       if (user) {
@@ -58,14 +71,13 @@ const App = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fetch user data after login status is confirmed
   useEffect(() => {
     const fetchDataFromFirebase = async () => {
       if (isLoggedIn) {
         try {
           const userId = auth().currentUser.uid;
           const userData = await firebase.firestore().collection('users').doc(userId).get();
-          console.log(userData.data()); // Handle fetched user data as needed
+          console.log(userData.data());
         } catch (error) {
           console.error('Error fetching user data:', error);
         }
@@ -76,23 +88,25 @@ const App = () => {
   }, [isLoggedIn]);
 
   if (isLoggedIn === null) {
-    return null; // Optionally show a loading spinner until state is known
+    return null;
   }
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          <Stack.Screen name="Tab" component={TabNavigator} options={{ animation: 'slide_from_bottom' }} />
-        ) : (
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'slide_from_bottom' }} />
-            <Stack.Screen name="Register" component={RegisterScreen} options={{ animation: 'slide_from_right' }} />
-            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ animation: 'slide_from_right' }} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <I18nextProvider i18n={i18next}>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {isLoggedIn ? (
+            <Stack.Screen name="Drawer" component={DrawerNavigator} options={{ animation: 'slide_from_bottom' }} />
+          ) : (
+            <>
+              <Stack.Screen name="Login" component={LoginScreen} options={{ animation: 'slide_from_bottom' }} />
+              <Stack.Screen name="Register" component={RegisterScreen} options={{ animation: 'slide_from_right' }} />
+              <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ animation: 'slide_from_right' }} />
+            </>
+          )}
+        </Stack.Navigator>
+      </NavigationContainer>
+    </I18nextProvider>
   );
 };
 

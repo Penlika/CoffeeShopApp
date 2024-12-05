@@ -13,10 +13,17 @@ import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
-const CommentsAndRatings = ({ comments, setComments, id, targetCollection, onUserCommentDeleted }) => {
+const CommentsAndRatings = ({ 
+  comments, 
+  setComments, 
+  id, 
+  targetCollection, 
+  beverage,
+  onUserCommentDeleted 
+}) => {
   const [editMode, setEditMode] = useState(null);
   const [editedComment, setEditedComment] = useState('');
-  const [editedRating, setEditedRating] = useState(0);
+  const [editedRating, setEditedRating] = useState(null);
   const [menuVisible, setMenuVisible] = useState(null);
 
   const currentUser = auth().currentUser;
@@ -24,16 +31,44 @@ const CommentsAndRatings = ({ comments, setComments, id, targetCollection, onUse
   const handleEdit = (comment, rating, index) => {
     setEditMode(index);
     setEditedComment(comment || '');
-    setEditedRating(rating || 0);  // Preserve the original rating
+    setEditedRating(rating);
     setMenuVisible(null);
   };
 
   const saveEdit = async (commentId, originalRating) => {
     try {
-      // Determine the rating to save (use edited rating if changed, otherwise keep original)
-      const ratingToSave = editedRating > 0 ? editedRating : originalRating;
+      // Fetch all comments for this item
+      const commentsSnapshot = await firestore()
+        .collection(targetCollection)
+        .doc(id)
+        .collection('CommentsAndRatings')
+        .get();
 
-      // Update the comment and rating in Firestore
+      const allComments = commentsSnapshot.docs.map(doc => doc.data());
+      
+      // Remove the original rating and filter other ratings
+      const otherRatings = allComments.filter(comment => 
+        comment.userId !== currentUser.uid && comment.rating > 0
+      );
+
+      // Add the new rating
+      const newRatings = [...otherRatings, { rating: editedRating }];
+      
+      // Recalculate average rating
+      const updatedAverageRating = newRatings.length > 0 
+        ? newRatings.reduce((sum, comment) => sum + comment.rating, 0) / newRatings.length
+        : 0;
+
+      // Update main document with new average rating
+      await firestore()
+        .collection(targetCollection)
+        .doc(id)
+        .update({
+          average_rating: updatedAverageRating,
+          ratings_count: newRatings.length
+        });
+
+      // Update the specific comment
       await firestore()
         .collection(targetCollection)
         .doc(id)
@@ -41,16 +76,16 @@ const CommentsAndRatings = ({ comments, setComments, id, targetCollection, onUse
         .doc(commentId)
         .update({
           comment: editedComment,
-          rating: ratingToSave,
+          rating: editedRating,
         });
 
-      // Update the local state
+      // Update local state
       const updatedComments = comments.map((item) => {
         if (item.commentId === commentId) {
           return { 
             ...item, 
             comment: editedComment, 
-            rating: ratingToSave 
+            rating: editedRating 
           };
         }
         return item;
@@ -162,7 +197,7 @@ const CommentsAndRatings = ({ comments, setComments, id, targetCollection, onUse
         keyExtractor={(item) => item.commentId}
         renderItem={renderComment}
         contentContainerStyle={styles.CommentsList}
-        scrollEnabled={false}  // Prevents nested scrolling
+        scrollEnabled={false}
       />
     </View>
   );
