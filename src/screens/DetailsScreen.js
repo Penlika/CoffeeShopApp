@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useRoute } from '@react-navigation/native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -22,6 +23,7 @@ import CommentsAndRatings from '../components/CommentsAndRatings';
 const DetailScreen = ({ navigation }) => {
   const route = useRoute();
   const { id } = route.params;
+  console.log('DetailScreen Route Params:', route.params);
   const [beverage, setBeverage] = useState(null);
   const [price, setPrice] = useState(null);
   const [fullDesc, setFullDesc] = useState(false);
@@ -224,22 +226,42 @@ const DetailScreen = ({ navigation }) => {
       try {
         const userId = auth().currentUser?.uid;
         const userEmail = auth().currentUser?.email;
-  
+    
         if (!userId) {
           console.error("User is not logged in");
           return;
         }
+        const orderHistoryRef = firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('orderHistory');
+
+        const orderHistorySnapshot = await orderHistoryRef.get();
+        const hasItemInOrderHistory = orderHistorySnapshot.docs.some(doc => {
+          const orderItems = doc.data().items;
+          return orderItems.some(item => 
+            item.id === id || // Check if the exact ID matches
+            (item.name === beverage.name && item.type === beverage.type) // Alternatively, check name and type
+          );
+        });
+        // Fetch additional user data (username, profilePic) from Firestore
+        const userDoc = await firestore().collection('users').doc(userId).get();
+        const userName = userDoc.exists ? userDoc.data()?.username || "Anonymous" : "Anonymous";
+        const profilePicture = userDoc.exists ? userDoc.data()?.profilePic || null : null;
   
         const targetCollection = beverage.type;
-  
+    
         if (!targetCollection) {
           console.error("Item not found in any collection.");
           return;
         }
-  
+        if (!hasItemInOrderHistory) {
+          Alert.alert('Restricted', 'You can only comment on items you have ordered.');
+          return;
+        }
         const docRef = firestore().collection(targetCollection).doc(id);
         const docSnapshot = await docRef.get();
-  
+    
         if (docSnapshot.exists) {
           // Fetch all comments and ratings for this item
           const commentsSnapshot = await firestore()
@@ -247,32 +269,32 @@ const DetailScreen = ({ navigation }) => {
             .doc(id)
             .collection('CommentsAndRatings')
             .get();
-  
+    
           const allComments = commentsSnapshot.docs.map(doc => doc.data());
           
           // Find the user's existing comment/rating
           const userExistingComment = allComments.find(comment => comment.userId === userId);
-  
+    
           // Prepare the list of ratings, excluding the current user's previous rating
           const otherRatings = allComments.filter(comment => 
             comment.userId !== userId && comment.rating > 0
           );
-  
+    
           // Calculate new average rating
           const newRatings = [...otherRatings, { rating: pendingRating }];
           const updatedAverageRating = newRatings.length > 0 
             ? newRatings.reduce((sum, comment) => sum + comment.rating, 0) / newRatings.length
             : 0;
-  
+    
           // Prepare update object
           const updateData = {
             average_rating: updatedAverageRating,
             ratings_count: newRatings.length
           };
-  
+    
           // Update the document
           await docRef.update(updateData);
-  
+    
           // Handle comment in CommentsAndRatings sub-collection
           const commentQuery = await firestore()
             .collection(targetCollection)
@@ -280,7 +302,7 @@ const DetailScreen = ({ navigation }) => {
             .collection('CommentsAndRatings')
             .where('userId', '==', userId)
             .get();
-  
+    
           if (!commentQuery.empty) {
             // Update existing comment
             const commentDoc = commentQuery.docs[0];
@@ -300,29 +322,31 @@ const DetailScreen = ({ navigation }) => {
                 rating: pendingRating,
                 timestamp: firestore.FieldValue.serverTimestamp(),
                 userId: userId,
-                email: userEmail
+                email: userEmail,
+                username: userName,
+                profilePic: profilePicture,
               });
           }
-  
+    
           // Fetch and sort updated comments
           const updatedCommentsSnapshot = await firestore()
             .collection(targetCollection)
             .doc(id)
             .collection('CommentsAndRatings')
             .get();
-  
+    
           const allCommentsAndRatings = updatedCommentsSnapshot.docs.map(doc => ({
             ...doc.data(),
             commentId: doc.id
           }));
-  
+    
           const sortedComments = allCommentsAndRatings.sort((a, b) => {
             const currentUserId = auth().currentUser?.uid;
             if (a.userId === currentUserId) return -1;
             if (b.userId === currentUserId) return 1;
             return 0;
           });
-  
+    
           // Update local state
           setComments(sortedComments);
           setUserRating(updatedAverageRating);
@@ -331,9 +355,11 @@ const DetailScreen = ({ navigation }) => {
             comment: commentText,
             rating: pendingRating,
             userId: userId,
-            email: userEmail
+            email: userEmail,
+            username: userName,
+            profilePic: profilePicture,
           });
-  
+    
           // Clear input fields
           setCommentText('');
           setPendingRating(0);

@@ -29,12 +29,23 @@ const RegisterScreen = ({ navigation }) => {
     }
 
     try {
+      // Check if the username already exists in Firestore
+      const usernameQuery = await firestore()
+        .collection('users')
+        .where('username', '==', username)
+        .get();
+
+      if (!usernameQuery.empty) {
+        Alert.alert('Error', 'Username already exists. Please choose a different one.');
+        return;
+      }
+
       // Create the user with Firebase Authentication
       const userCredential = await auth().createUserWithEmailAndPassword(email, password);
-      
+
       // Get the user info
       const user = userCredential.user;
-      
+
       // Create user data in Firestore
       await firestore().collection('users').doc(user.uid).set({
         username,

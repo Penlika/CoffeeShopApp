@@ -178,7 +178,6 @@ const AccountSettingsScreen = ({ navigation }) => {
         {renderEditableField('Username', username, setUsername, 'username')}
         {renderEditableField('Address', address, setAddress, 'address')}
         {renderEditableField('Phone', phone, setPhone, 'phone')}
-        {renderEditableField('Payment Method', paymentMethod, setPaymentMethod, 'paymentMethod')}
 
         {/* Email Field (Read-Only) */}
         <View style={styles.InputContainerComponent}>

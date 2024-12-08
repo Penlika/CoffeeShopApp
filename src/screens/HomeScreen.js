@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, FlatList } from 'react-native';
+import { ScrollView, StatusBar, StyleSheet, Text, TextInput, TouchableOpacity, View, FlatList, ToastAndroid } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
 import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
@@ -12,7 +12,7 @@ const HomeScreen = ({ navigation }) => {
   const [categories, setCategories] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [categoryIndex, setCategoryIndex] = useState({ index: 0, category: 'All' });
-  const [isDarkMode, setIsDarkMode] = useState(false);  // Default theme mode
+  const [isDarkMode, setIsDarkMode] = useState(false); // Default theme mode
   const ListRef = useRef(null);
 
   useEffect(() => {
@@ -79,20 +79,69 @@ const HomeScreen = ({ navigation }) => {
   const resetSearch = () => {
     ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
     setCategoryIndex({ index: 0, category: 'All' });
-    setBeverages((prev) => ({
-      ...prev,
-      coffee: prev.coffee,
-      tea: prev.tea,
-      blended_beverages: prev.blended_beverages,
-      milk_juice_more: prev.milk_juice_more,
-    }));
     setSearchText('');
   };
 
-  const addToCart = (item) => {
-    ToastAndroid.showWithGravity(`${item.name} added to cart`, ToastAndroid.SHORT, ToastAndroid.CENTER);
-    // Handle cart logic here
+  const addToCart = async (item, price) => {
+    const userId = auth().currentUser?.uid;
+  
+    if (!userId) {
+      console.error("User is not logged in");
+      return;
+    }
+  
+    try {
+      // Reference to the user's cart collection
+      const cartRef = firestore().collection('users').doc(userId).collection('cartItems');
+  
+      // Create the cart item object with the prices array structure
+      const cartItem = {
+        name: item.name,
+        roasted: item.roasted || "Unknown",
+        imagelink_square: item.imagelink_square,
+        special_ingredient: item.special_ingredient || "None",
+        type: item.type,
+        prices: [{
+          size: price.size,
+          price: price.price,
+          quantity: 1,
+          currency: '$'
+        }],
+        totalPrice: price.price
+      };
+  
+      // Check if item already exists in cart with the same size
+      const existingItemQuery = await cartRef
+        .where('name', '==', cartItem.name)
+        .where('prices.0.size', '==', price.size)
+        .get();
+  
+      if (!existingItemQuery.empty) {
+        // If item exists, update quantity
+        const existingItemDoc = existingItemQuery.docs[0];
+        const currentData = existingItemDoc.data();
+        const currentQuantity = currentData.prices[0].quantity || 0;
+  
+        await existingItemDoc.ref.update({
+          'prices.0.quantity': currentQuantity + 1,
+          totalPrice: (currentQuantity + 1) * price.price
+        });
+      } else {
+        // If item doesn't exist, add new item to cart
+        await cartRef.add(cartItem);
+      }
+  
+      // Provide user feedback
+      ToastAndroid.showWithGravity(`${item.name} added to cart`, ToastAndroid.SHORT, ToastAndroid.CENTER);
+  
+      // Optional: Navigate to the cart screen
+      // navigation.navigate('Cart');
+  
+    } catch (error) {
+      console.error('Error adding item to cart:', error);
+    }
   };
+  
 
   const renderFlatList = (data, title, category) => (
     <>
@@ -102,10 +151,14 @@ const HomeScreen = ({ navigation }) => {
         showsHorizontalScrollIndicator={false}
         data={filterData(category, data)}
         contentContainerStyle={styles.FlatListContainer}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id} // Ensure every item has a unique id
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => navigation.push('Details', { id: item.id })}>
-            <CoffeeCard {...item} price={item.prices[0]} buttonPressHandler={() => addToCart(item)} />
+            <CoffeeCard
+              {...item}
+              price={item.prices[0]}
+              buttonPressHandler={() => addToCart(item, item.prices[0])}
+            />
           </TouchableOpacity>
         )}
       />
@@ -145,21 +198,21 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Category Scroller */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.CategoryScrollViewStyle}>
-          {categories.map((category, index) => (
-            <View key={index} style={styles.CategoryScrollViewContainer}>
+          {categories.map((category) => (
+            <View key={category} style={styles.CategoryScrollViewContainer}>
               <TouchableOpacity
                 style={styles.CategoryScrollViewItem}
                 onPress={() => {
                   ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
-                  setCategoryIndex({ index, category });
+                  setCategoryIndex({ index: categories.indexOf(category), category });
                 }}
               >
                 <Text
-                  style={[styles.CategoryText, categoryIndex.index === index && { color: COLORS.primaryOrangeHex }]}
+                  style={[styles.CategoryText, categoryIndex.category === category && { color: COLORS.primaryOrangeHex }]}
                 >
                   {category}
                 </Text>
-                {categoryIndex.index === index && <View style={styles.ActiveCategory} />}
+                {categoryIndex.category === category && <View style={styles.ActiveCategory} />}
               </TouchableOpacity>
             </View>
           ))}
@@ -171,10 +224,11 @@ const HomeScreen = ({ navigation }) => {
           { collection: 'tea', title: 'Tea' },
           { collection: 'blended_beverages', title: 'Blended Beverages' },
           { collection: 'milk_juice_more', title: 'Milk, Juice & More' },
-        ].map(({ collection, title }) => {
-          const data = beverages[collection] || [];
-          return renderFlatList(data, title, categoryIndex.category);
-        })}
+        ].map(({ collection, title }) => (
+          <View key={collection}>
+            {renderFlatList(beverages[collection] || [], title, categoryIndex.category)}
+          </View>
+        ))}
       </ScrollView>
     </View>
   );
@@ -211,7 +265,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryWhiteHex,
   },
   CategoryScrollViewStyle: {
-    paddingHorizontal: SPACING.space_20,
+    paddingHorizontal: SPACING.space_36,
     marginBottom: SPACING.space_20,
   },
   CategoryScrollViewContainer: {

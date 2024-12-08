@@ -45,25 +45,52 @@ const OrderHistoryScreen = ({ navigation }) => {
       return () => unsubscribe();
     }
   }, []);
-  // Fetch order history from Firestore
   useEffect(() => {
     const fetchOrderHistory = async () => {
       try {
-        const userId = 'user-id'; // Replace with actual user ID
+        const userId = auth().currentUser?.uid;
+        if (!userId) {
+          console.error('No user ID found');
+          return;
+        }
+
         const ordersSnapshot = await firestore()
-          .collection('orders')
-          .where('userId', '==', userId) // Assuming the order collection has userId field
+          .collection('users')
+          .doc(userId)
+          .collection('orderHistory')
+          .orderBy('orderedAt', 'desc')
           .get();
 
-        const ordersData = ordersSnapshot.docs.map(doc => doc.data());
-        setOrderHistoryList(ordersData); // Set data to state
+          const ordersData = ordersSnapshot.docs.map((doc) => {
+            const orderData = doc.data();
+            const expandedItems = orderData.items.map((item) => ({
+              ...item,
+              price: item.prices[0]?.price ?? 0,
+              quantity: item.prices[0]?.quantity ?? 1,
+              size: item.prices[0]?.size ?? 'N/A',
+              roasted: item.prices[0]?.roasted ?? 'Unknown',
+              special_ingredient: item.prices[0]?.special_ingredient ?? 'None',
+            }));
+            return {
+              id: doc.id,
+              imagelink_square: orderData.imagelink_square ?? 'defaultImageUrl',
+              items: expandedItems,
+              orderedAt: orderData.orderedAt.toDate(),
+              paymentMethod: orderData.paymentMethod,
+              paymentStatus: orderData.paymentStatus,
+              totalAmount: orderData.totalAmount,
+            };
+          });
+
+          setOrderHistoryList(ordersData);
       } catch (error) {
         console.error('Error fetching order history:', error);
       }
     };
 
+
     fetchOrderHistory();
-  }, []); // Empty dependency array to fetch only once on mount
+  }, []);
 
   const navigationHandler = ({ index, id, type }) => {
     navigation.push('Details', {
@@ -84,13 +111,6 @@ const OrderHistoryScreen = ({ navigation }) => {
     <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
       <StatusBar backgroundColor={isDarkMode ? COLORS.primaryBlackHex : COLORS.primaryWhiteHex} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
 
-      {showAnimation ? (
-        <PopUpAnimation
-          style={styles.LottieAnimation}
-          source={require('../lottie/download.json')}
-        />
-      ) : null}
-
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.ScrollViewFlex}>
         <View style={[styles.ScrollViewInnerView, { marginBottom: tabBarHeight }]}>
           <View style={styles.ItemContainer}>
@@ -99,24 +119,21 @@ const OrderHistoryScreen = ({ navigation }) => {
             {orderHistoryList.length === 0 ? (
               <EmptyListAnimation title="No Order History" />
             ) : (
-              <View style={styles.ListItemContainer}>
-                {orderHistoryList.map((data, index) => (
-                  <OrderHistoryCard
-                    key={index.toString()}
-                    navigationHandler={navigationHandler}
-                    CartList={data.CartList}
-                    CartListPrice={data.CartListPrice}
-                    OrderDate={data.OrderDate}
-                  />
-                ))}
-              </View>
+            <View style={styles.ListItemContainer}>
+              {orderHistoryList.map((data, index) => (
+                <OrderHistoryCard
+                  key={data.id}
+                  navigationHandler={navigationHandler}
+                  CartList={data.items}
+                  CartListPrice={data.totalAmount}
+                  OrderDate={data.orderedAt.toLocaleString()} // Format the date
+                  paymentMethod={data.paymentMethod}
+                  paymentStatus={data.paymentStatus}
+                />
+              ))}
+            </View>
             )}
           </View>
-          {orderHistoryList.length > 0 && (
-            <TouchableOpacity style={styles.DownloadButton} onPress={buttonPressHandler}>
-              <Text style={styles.ButtonText}>Download</Text>
-            </TouchableOpacity>
-          )}
         </View>
       </ScrollView>
     </View>

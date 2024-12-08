@@ -9,7 +9,7 @@ import { Picker } from '@react-native-picker/picker';
 import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
 
 const ProfileScreen = () => {
-  const { t, i18n } = useTranslation(); // Use the useTranslation hook
+  const { t, i18n } = useTranslation();
   const [profileData, setProfileData] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(Appearance.getColorScheme() === 'dark');
   const [selectedLanguage, setSelectedLanguage] = useState('en'); // Default language
@@ -34,16 +34,17 @@ const ProfileScreen = () => {
       return () => unsubscribe();
     }
   }, []);
+
   const handleThemeModeChange = async (newMode) => {
     const user = auth().currentUser;
     if (user) {
-      // Update the user document in Firestore with the selected theme mode
       await firestore().collection('users').doc(user.uid).update({
-        mode: newMode, // Set the theme mode (either 'light' or 'dark')
+        mode: newMode,
       });
     }
     setIsDarkMode(newMode === 'dark');
   };
+
   const handleLanguageChange = async (newLanguage) => {
     const user = auth().currentUser;
     if (user) {
@@ -65,7 +66,7 @@ const ProfileScreen = () => {
           {profileData?.profilePic ? (
             <Image source={{ uri: profileData.profilePic }} style={styles.ProfilePic} />
           ) : (
-            <Text style={styles.ProfilePicPlaceholder}>{t('no_profile_picture')}</Text>
+            <Image source={require('../assets/images.jpg')} style={styles.ProfilePic} />
           )}
         </View>
 
@@ -73,18 +74,13 @@ const ProfileScreen = () => {
           <Text style={styles.ButtonText}>{t('accountSettings')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.Button} onPress={() => Alert.alert(t('helpSupport'), 'support@yourapp.com')}>
+        <TouchableOpacity style={styles.Button} onPress={() => Alert.alert(t('helpSupport'), 'support@CoffeeShop.com')}>
           <Text style={styles.ButtonText}>{t('helpSupport')}</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.Button} onPress={() => auth().signOut()}>
-          <Text style={styles.ButtonText}>{t('logout')}</Text>
-        </TouchableOpacity>
-
+        {/* Dark/Light Mode Switch */}
         <View style={styles.ModeSwitchContainer}>
-          <Text style={styles.ModeSwitchText}>
-            {t('switch_to_mode', { mode: isDarkMode ? t('lightMode') : t('darkMode') })}
-          </Text>
+          <Text style={styles.ModeSwitchText}>{isDarkMode ? t('dark') : t('light')}</Text>
           <Switch
             value={isDarkMode}
             onValueChange={() => handleThemeModeChange(isDarkMode ? 'light' : 'dark')}
@@ -93,6 +89,7 @@ const ProfileScreen = () => {
           />
         </View>
 
+        {/* Language Picker */}
         <View style={styles.LanguageContainer}>
           <Text style={styles.LanguageText}>{t('selectLanguage')}</Text>
           <Picker
@@ -105,6 +102,11 @@ const ProfileScreen = () => {
             <Picker.Item label={t('french')} value="fr" />
           </Picker>
         </View>
+
+        {/* Logout Button */}
+        <TouchableOpacity style={[styles.Button, styles.LogoutButton]} onPress={() => auth().signOut()}>
+          <Text style={styles.ButtonText}>{t('logout')}</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -136,14 +138,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: COLORS.primaryOrangeHex,
   },
-  ProfilePicPlaceholder: {
-    color: COLORS.primaryWhiteHex,
-    fontSize: FONTSIZE.size_16,
-    fontFamily: FONTFAMILY.poppins_regular,
-  },
-  ButtonContainer: {
-    marginTop: SPACING.space_20,
-  },
   Button: {
     backgroundColor: COLORS.primaryOrangeHex,
     borderRadius: BORDERRADIUS.radius_20,
@@ -169,7 +163,12 @@ const styles = StyleSheet.create({
     fontFamily: FONTFAMILY.poppins_regular,
   },
   LanguageContainer: {
+    backgroundColor: COLORS.primaryOrangeHex,
     marginTop: SPACING.space_20,
+    borderWidth: 1,
+    borderColor: COLORS.primaryLightGreyHex,
+    borderRadius: BORDERRADIUS.radius_20,
+    padding: SPACING.space_15,
   },
   LanguageText: {
     fontSize: FONTSIZE.size_16,
@@ -180,11 +179,11 @@ const styles = StyleSheet.create({
   LanguagePicker: {
     height: 50,
     width: '100%',
-    borderColor: COLORS.primaryLightGreyHex,
-    borderWidth: 1,
-    borderRadius: BORDERRADIUS.radius_20,
     backgroundColor: COLORS.primaryDarkGreyHex,
     color: COLORS.primaryWhiteHex,
+  },
+  LogoutButton: {
+    marginTop: 'auto',  // This will push it to the bottom
   },
 });
 

@@ -129,7 +129,7 @@ const ImageBackgroundInfo = ({
               <View style={styles.ItemPropertiesContainer}>
                 <View style={styles.ProperFirst}>
                   <Icon
-                    name={type === 'Bean' ? 'coffee' : 'leaf'}
+                    name={type === 'tea' ? 'coffee' : 'leaf'}
                     size={type === 'Bean' ? FONTSIZE.size_18 : FONTSIZE.size_24}
                     color={COLORS.primaryOrangeHex}
                   />

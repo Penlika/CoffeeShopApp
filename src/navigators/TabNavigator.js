@@ -2,31 +2,57 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StyleSheet } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Icon library for tabs
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 // Screens
 import HomeScreen from '../screens/HomeScreen';
 import FavoritesScreen from '../screens/FavoritesScreen';
 import CartScreen from '../screens/CartScreen';
 import OrderHistoryScreen from '../screens/OrderHistoryScreen';
-import DetailsScreen from '../screens/DetailsScreen'; // Details Screen
-import ProfileScreen from '../screens/ProfileScreen'; // Profile Screen
-import { COLORS } from '../theme/theme'; // Your theme
+import DetailsScreen from '../screens/DetailsScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import { COLORS } from '../theme/theme';
 import AccountSettingsScreen from '../screens/AccountSettingScreen';
+import PaymentScreen from '../screens/PaymentScreen';
+import PayPalWebViewScreen from '../screens/PayPalWebViewScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// HomeStack (Stack for Home tab including Details screen and Profile screen)
+// Wrap each main tab screen in a stack to allow navigation to Profile
 const HomeStack = () => (
-  <Stack.Navigator
-    screenOptions={{
-      headerShown: false,
-      tabBarShowLabel: false,
-      tabBarStyle: styles.tabBar,
-    }}
-  >
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="HomeScreen" component={HomeScreen} />
+    <Stack.Screen name="Details" component={DetailsScreen} />
+    <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="AccountSettings" component={AccountSettingsScreen}/>
+  </Stack.Navigator>
+);
+
+const FavoritesStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="FavoritesScreen" component={FavoritesScreen} />
+    <Stack.Screen name="Details" component={DetailsScreen} />
+    <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="AccountSettings" component={AccountSettingsScreen}/>
+  </Stack.Navigator>
+);
+
+const CartStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CartScreen" component={CartScreen} />
+    <Stack.Screen name="Payment" component={PaymentScreen} />
+    <Stack.Screen name="PayPalWebView" component={PayPalWebViewScreen} />
+    <Stack.Screen name="Details" component={DetailsScreen} />
+    <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
+    <Stack.Screen name="AccountSettings" component={AccountSettingsScreen}/>
+    <Stack.Screen name="History" component={OrderHistoryScreen} />
+  </Stack.Navigator>
+);
+
+const OrdersStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="OrderHistoryScreen" component={OrderHistoryScreen} />
     <Stack.Screen name="Details" component={DetailsScreen} />
     <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
     <Stack.Screen name="AccountSettings" component={AccountSettingsScreen}/>
@@ -45,7 +71,7 @@ const TabNavigator = () => {
     >
       <Tab.Screen
         name="Home"
-        component={HomeStack} // Use HomeStack here
+        component={HomeStack}
         options={{
           tabBarIcon: ({ focused }) => (
             <Icon
@@ -58,7 +84,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="Cart"
-        component={CartScreen}
+        component={CartStack}
         options={{
           tabBarIcon: ({ focused }) => (
             <Icon
@@ -71,7 +97,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="Favorites"
-        component={FavoritesScreen}
+        component={FavoritesStack}
         options={{
           tabBarIcon: ({ focused }) => (
             <Icon
@@ -84,7 +110,7 @@ const TabNavigator = () => {
       />
       <Tab.Screen
         name="Orders"
-        component={OrderHistoryScreen}
+        component={OrdersStack}
         options={{
           tabBarIcon: ({ focused }) => (
             <Icon

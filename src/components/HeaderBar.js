@@ -10,7 +10,7 @@ const HeaderBar = ({ title, navigation }) => {
     <View style={styles.HeaderContainer}>
       <View style={styles.Container}>
         {/* Touchable to open Drawer */}
-        <TouchableOpacity onPress={() => navigation.openDrawer()}>
+        <TouchableOpacity>
           <LinearGradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -21,7 +21,6 @@ const HeaderBar = ({ title, navigation }) => {
         </TouchableOpacity>
       </View>
       <Text style={styles.HeaderText}>{title}</Text>
-      {/* Pass navigation prop to ProfilePic */}
       <ProfilePic navigation={navigation} />
     </View>
   );

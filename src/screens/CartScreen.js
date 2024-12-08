@@ -221,9 +221,10 @@ const CartScreen = ({ navigation }) => {
             ) : (
               <View style={styles.ListItemContainer}>
                 {cartItems.map(data => (
-                  <TouchableOpacity
+                    <TouchableOpacity
                     onPress={() => {
                       navigation.push('Details', {
+                        index: data.index,
                         id: data.id,
                         type: data.type,
                       });

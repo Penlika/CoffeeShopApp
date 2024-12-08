@@ -18,9 +18,10 @@ import GradientBGIcon from '../components/GradientBGIcon';
 import PaymentMethod from '../components/PaymentMethod';
 import PaymentFooter from '../components/PaymentFooter';
 import LinearGradient from 'react-native-linear-gradient';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Example icon library import
-import {useStore} from '../store/store';
+import Icon from 'react-native-vector-icons/FontAwesome';
 import PopUpAnimation from '../components/PopUpAnimation';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 
 const PaymentList = [
   {
@@ -29,35 +30,82 @@ const PaymentList = [
     isIcon: true,
   },
   {
-    name: 'Google Pay',
-    icon: 'google',
-    isIcon: false,
-  },
-  {
-    name: 'Apple Pay',
-    icon: 'apple',
-    isIcon: false,
-  },
-  {
-    name: 'Amazon Pay',
-    icon: 'amazon',
+    name: 'PayPal',
+    icon: 'paypal',
     isIcon: false,
   },
 ];
 
 const PaymentScreen = ({navigation, route}) => {
-  const calculateCartPrice = useStore(state => state.calculateCartPrice);
-  const addToOrderHistoryListFromCart = useStore(
-    state => state.addToOrderHistoryListFromCart,
-  );
-
   const [paymentMode, setPaymentMode] = useState('Credit Card');
   const [showAnimation, setShowAnimation] = useState(false);
 
-  const buttonPressHandler = () => {
+  const userId = auth().currentUser?.uid;
+
+  const calculateCartPrice = async () => {
+    try {
+      const cartSnapshot = await firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .get();
+
+      const cartItems = cartSnapshot.docs.map(doc => doc.data());
+      const totalPrice = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+
+      return totalPrice;
+    } catch (error) {
+      console.error('Error calculating cart price:', error);
+      return 0;
+    }
+  };
+
+  const addToOrderHistoryListFromCart = async () => {
+    try {
+      const cartSnapshot = await firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('cart')
+        .get();
+
+      const orderItems = cartSnapshot.docs.map(doc => doc.data());
+      const batch = firestore().batch();
+
+      orderItems.forEach(item => {
+        const orderDoc = firestore()
+          .collection('users')
+          .doc(userId)
+          .collection('orderHistory')
+          .doc();
+
+        batch.set(orderDoc, item);
+      });
+
+      const cartCollection = firestore()
+        .collection('users')
+        .doc(userId)
+        .collection('cart');
+      
+      cartSnapshot.docs.forEach(doc => {
+        batch.delete(cartCollection.doc(doc.id));
+      });
+
+      await batch.commit();
+    } catch (error) {
+      console.error('Error moving items to order history:', error);
+    }
+  };
+
+  const buttonPressHandler = async () => {
+    if (paymentMode === 'PayPal') {
+      navigation.navigate('PayPalWebView', { 
+        amount: route.params.amount 
+      });
+      return;
+    }
     setShowAnimation(true);
-    addToOrderHistoryListFromCart();
-    calculateCartPrice();
+    await addToOrderHistoryListFromCart();
+    await calculateCartPrice();
     setTimeout(() => {
       setShowAnimation(false);
       navigation.navigate('History');

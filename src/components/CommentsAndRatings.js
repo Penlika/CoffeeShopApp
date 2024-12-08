@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  Image,
 } from 'react-native';
 import { COLORS, FONTFAMILY, FONTSIZE, SPACING, BORDERRADIUS } from '../theme/theme';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { Menu, MenuItem, MenuDivider } from 'react-native-material-menu';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
+
+const DEFAULT_PROFILE_PIC = require('../assets/images.jpg');
 
 const CommentsAndRatings = ({ 
   comments, 
@@ -122,7 +125,6 @@ const CommentsAndRatings = ({
 
   const renderComment = ({ item, index }) => {
     const isCurrentUser = item.userId === currentUser?.uid;
-
     return (
       <View
         style={[
@@ -131,7 +133,11 @@ const CommentsAndRatings = ({
         ]}
       >
         <View style={styles.CommentHeader}>
-          <Text style={styles.UserEmail}>{item.email || 'Unknown User'}</Text>
+          <Image
+            source={item.profilePic ? { uri: item.profilePic } : DEFAULT_PROFILE_PIC}
+            style={styles.ProfilePic}
+          />
+          <Text style={styles.UserEmail}>{item.username || 'Unknown User'}</Text>
           <View style={styles.RatingStars}>
             {[1, 2, 3, 4, 5].map((star) => (
               editMode === index ? (
@@ -204,6 +210,12 @@ const CommentsAndRatings = ({
 };
 
 const styles = StyleSheet.create({
+  ProfilePic: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: SPACING.space_10,
+  },
   CommentBox: {
     padding: SPACING.space_15,
     borderRadius: BORDERRADIUS.radius_10,
@@ -211,17 +223,19 @@ const styles = StyleSheet.create({
   },
   CommentHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: SPACING.space_10,
   },
   UserEmail: {
     fontFamily: FONTFAMILY.poppins_regular,
     fontSize: FONTSIZE.size_14,
+    fontWeight:'bold',
     color: COLORS.primaryLightGreyHex,
+    paddingRight:50,
   },
   RatingStars: {
     flexDirection: 'row',
+    paddingRight:120,
   },
   CommentText: {
     fontFamily: FONTFAMILY.poppins_regular,

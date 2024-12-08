@@ -1,20 +1,40 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
   TextInput,
   View,
   TouchableOpacity,
+  Alert,
 } from 'react-native';
-import {COLORS, FONTSIZE, SPACING} from '../theme/theme';
+import auth from '@react-native-firebase/auth';
+import { COLORS, FONTSIZE, SPACING } from '../theme/theme';
 
-const ForgotPasswordScreen = ({navigation}) => {
+const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
+  const [resetCode, setResetCode] = useState('');
 
-  const handleForgotPassword = () => {
-    // Handle forgot password logic here
-    console.log('Password reset for', email);
+  const handleForgotPassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address.');
+      return;
+    }
+  
+    try {
+      await auth().sendPasswordResetEmail(email);
+      Alert.alert('Success', 'A password reset email has been sent to your email address.');
+      navigation.navigate('Login');
+    } catch (error) {
+      let errorMessage = 'An error occurred. Please try again.';
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email address.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'The email address is invalid.';
+      }
+      Alert.alert('Error', errorMessage);
+    }
   };
+  
 
   return (
     <View style={styles.container}>

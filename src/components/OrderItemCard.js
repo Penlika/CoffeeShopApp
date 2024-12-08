@@ -25,7 +25,7 @@ const OrderItemCard = ({
       style={styles.CardLinearGradient}>
       <View style={styles.CardInfoContainer}>
         <View style={styles.CardImageInfoContainer}>
-          <Image source={imagelink_square} style={styles.Image} />
+        <Image source={{ uri: imagelink_square }} style={styles.Image} />
           <View>
             <Text style={styles.CardTitle}>{name}</Text>
             <Text style={styles.CardSubtitle}>{special_ingredient}</Text>
