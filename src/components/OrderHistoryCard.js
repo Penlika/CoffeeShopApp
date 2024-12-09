@@ -42,7 +42,7 @@ const OrderHistoryCard = ({
               onPress={() =>
                 navigationHandler({
                   index,
-                  id: item.id,
+                  id: item.itemId,
                   type: item.type,
                 })
               }>

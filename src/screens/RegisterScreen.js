@@ -51,6 +51,7 @@ const RegisterScreen = ({ navigation }) => {
         username,
         email,
         createdAt: firestore.FieldValue.serverTimestamp(),
+        mode:'dark',
       });
 
       Alert.alert('Success', 'Account created successfully!');
@@ -76,12 +77,14 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Username"
         value={username}
         onChangeText={setUsername}
+        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
       />
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -90,6 +93,7 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
+        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
         secureTextEntry
       />
       <TextInput
@@ -97,6 +101,7 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Confirm Password"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
+        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
         secureTextEntry
       />
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
@@ -114,20 +119,23 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: SPACING.space_20,
+    backgroundColor: COLORS.primaryBlackHex,
   },
   title: {
     fontSize: FONTSIZE.size_24,
     fontFamily: 'Poppins-Bold',
     marginBottom: SPACING.space_20,
     textAlign: 'center',
+    color: COLORS.primaryWhiteHex,
   },
   input: {
     height: 45,
-    borderColor: COLORS.primaryGreyHex,
+    borderColor: COLORS.primaryWhiteHex,
     borderWidth: 1,
     borderRadius: 5,
     marginBottom: SPACING.space_10,
     paddingLeft: SPACING.space_10,
+    color: COLORS.primaryWhiteHex,
   },
   button: {
     backgroundColor: COLORS.primaryOrangeHex,

@@ -23,7 +23,7 @@ const LoginScreen = ({ navigation }) => {
 
     try {
       await auth().signInWithEmailAndPassword(email, password);
-      navigation.navigate('Tab'); // Navigate to Tab Navigator
+      navigation.navigate('Tab');
     } catch (error) {
       if (error.code === 'auth/invalid-email') {
         Alert.alert('Invalid Email', 'Please check the email address.');
@@ -46,6 +46,7 @@ const LoginScreen = ({ navigation }) => {
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"
+        placeholderTextColor={COLORS.primaryWhiteHex}
       />
       <TextInput
         style={styles.input}
@@ -53,6 +54,7 @@ const LoginScreen = ({ navigation }) => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
+        placeholderTextColor={COLORS.primaryWhiteHex}
       />
       <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
         {loading ? (
@@ -72,9 +74,9 @@ const LoginScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: SPACING.space_20 },
-  title: { fontSize: FONTSIZE.size_24, fontFamily: 'Poppins-Bold', marginBottom: SPACING.space_20, textAlign: 'center' },
-  input: { height: 45, borderColor: COLORS.primaryGreyHex, borderWidth: 1, borderRadius: 5, marginBottom: SPACING.space_10, paddingLeft: SPACING.space_10 },
+  container: { flex: 1, justifyContent: 'center', padding: SPACING.space_20, backgroundColor: COLORS.primaryBlackHex },
+  title: { fontSize: FONTSIZE.size_24, fontFamily: 'Poppins-Bold', marginBottom: SPACING.space_20, textAlign: 'center', color: COLORS.primaryWhiteHex },
+  input: { height: 45, borderColor: COLORS.primaryWhiteHex, borderWidth: 1, borderRadius: 5, marginBottom: SPACING.space_10, paddingLeft: SPACING.space_10, color: COLORS.primaryWhiteHex },
   button: { backgroundColor: COLORS.primaryOrangeHex, paddingVertical: SPACING.space_10, borderRadius: 5, alignItems: 'center' },
   buttonText: { color: COLORS.primaryWhiteHex, fontSize: FONTSIZE.size_18, fontFamily: 'Poppins-Semibold' },
   link: { color: COLORS.primaryOrangeHex, textAlign: 'center', marginTop: SPACING.space_10 },

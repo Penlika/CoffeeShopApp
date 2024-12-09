@@ -7,16 +7,23 @@ import HeaderBar from '../components/HeaderBar';
 import CoffeeCard from '../components/CoffeeCard';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
+const CollectionDisplayNames = {
+  'coffee': 'Coffee',
+  'tea': 'Tea',
+  'blended_beverages': 'Blended Beverages',
+  'milk_juice_more': 'Milk, Juice & More'
+};
+
 const HomeScreen = ({ navigation }) => {
   const [beverages, setBeverages] = useState({});
+  const [originalBeverages, setOriginalBeverages] = useState({});
   const [categories, setCategories] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [categoryIndex, setCategoryIndex] = useState({ index: 0, category: 'All' });
-  const [isDarkMode, setIsDarkMode] = useState(false); // Default theme mode
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const ListRef = useRef(null);
 
   useEffect(() => {
-    // Get current user and fetch their theme mode
     const user = auth().currentUser;
     if (user) {
       const unsubscribe = firestore()
@@ -35,13 +42,21 @@ const HomeScreen = ({ navigation }) => {
 
   useEffect(() => {
     const categoriesRef = ['coffee', 'tea', 'blended_beverages', 'milk_juice_more'];
+    const beverageData = {};
     const unsubscribeList = categoriesRef.map((collection) =>
       firestore()
         .collection(collection)
         .onSnapshot((snapshot) => {
-          const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data(), collection }));
+          beverageData[collection] = data;
           setBeverages((prev) => ({ ...prev, [collection]: data }));
-          if (collection === 'coffee') setCategories(getCategoriesFromData(data));
+          setOriginalBeverages((prev) => ({ ...prev, [collection]: data }));
+
+          // Update categories after all collections are loaded
+          if (Object.keys(beverageData).length === categoriesRef.length) {
+            const allData = Object.values(beverageData).flat();
+            setCategories(getCategoriesFromData(allData));
+          }
         })
     );
 
@@ -50,27 +65,38 @@ const HomeScreen = ({ navigation }) => {
 
   const getCategoriesFromData = (data) => {
     let temp = {};
-    data.forEach((item) => (temp[item.name] = (temp[item.name] || 0) + 1));
+    data.forEach((item) => {
+      const displayName = CollectionDisplayNames[item.collection];
+      temp[displayName] = (temp[displayName] || 0) + 1;
+    });
     let categories = Object.keys(temp);
     categories.unshift('All');
     return categories;
   };
 
   const filterData = (category, data) => {
-    return category === 'All' ? data : data.filter((item) => item.name === category);
+    if (category === 'All') return data;
+
+    // Find the collection key for the selected display name
+    const matchingCollection = Object.keys(CollectionDisplayNames)
+      .find(key => CollectionDisplayNames[key] === category);
+
+    return data.filter((item) => item.collection === matchingCollection);
   };
 
   const handleSearch = (search) => {
     if (search) {
       ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
       setCategoryIndex({ index: 0, category: 'All' });
-      setBeverages((prev) => ({
-        ...prev,
-        coffee: prev.coffee.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
-        tea: prev.tea.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
-        blended_beverages: prev.blended_beverages.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
-        milk_juice_more: prev.milk_juice_more.filter((item) => item.name.toLowerCase().includes(search.toLowerCase())),
-      }));
+
+      const filteredBeverages = {};
+      Object.keys(originalBeverages).forEach(collection => {
+        filteredBeverages[collection] = originalBeverages[collection].filter(item =>
+          item.name.toLowerCase().includes(search.toLowerCase())
+        );
+      });
+
+      setBeverages(filteredBeverages);
     } else {
       resetSearch();
     }
@@ -80,97 +106,51 @@ const HomeScreen = ({ navigation }) => {
     ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
     setCategoryIndex({ index: 0, category: 'All' });
     setSearchText('');
+    setBeverages(originalBeverages);
   };
 
-  const addToCart = async (item, price) => {
-    const userId = auth().currentUser?.uid;
-  
-    if (!userId) {
-      console.error("User is not logged in");
-      return;
+  const renderFlatList = (data, title, collectionKey, category) => {
+    const filteredData = filterData(category, data);
+    if (filteredData.length === 0) {
+      return null;
     }
-  
-    try {
-      // Reference to the user's cart collection
-      const cartRef = firestore().collection('users').doc(userId).collection('cartItems');
-  
-      // Create the cart item object with the prices array structure
-      const cartItem = {
-        name: item.name,
-        roasted: item.roasted || "Unknown",
-        imagelink_square: item.imagelink_square,
-        special_ingredient: item.special_ingredient || "None",
-        type: item.type,
-        prices: [{
-          size: price.size,
-          price: price.price,
-          quantity: 1,
-          currency: '$'
-        }],
-        totalPrice: price.price
-      };
-  
-      // Check if item already exists in cart with the same size
-      const existingItemQuery = await cartRef
-        .where('name', '==', cartItem.name)
-        .where('prices.0.size', '==', price.size)
-        .get();
-  
-      if (!existingItemQuery.empty) {
-        // If item exists, update quantity
-        const existingItemDoc = existingItemQuery.docs[0];
-        const currentData = existingItemDoc.data();
-        const currentQuantity = currentData.prices[0].quantity || 0;
-  
-        await existingItemDoc.ref.update({
-          'prices.0.quantity': currentQuantity + 1,
-          totalPrice: (currentQuantity + 1) * price.price
-        });
-      } else {
-        // If item doesn't exist, add new item to cart
-        await cartRef.add(cartItem);
-      }
-  
-      // Provide user feedback
-      ToastAndroid.showWithGravity(`${item.name} added to cart`, ToastAndroid.SHORT, ToastAndroid.CENTER);
-  
-      // Optional: Navigate to the cart screen
-      // navigation.navigate('Cart');
-  
-    } catch (error) {
-      console.error('Error adding item to cart:', error);
-    }
-  };
-  
 
-  const renderFlatList = (data, title, category) => (
-    <>
-      <Text style={styles.CoffeeBeansTitle}>{title}</Text>
-      <FlatList
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        data={filterData(category, data)}
-        contentContainerStyle={styles.FlatListContainer}
-        keyExtractor={(item) => item.id} // Ensure every item has a unique id
-        renderItem={({ item }) => (
-          <TouchableOpacity onPress={() => navigation.push('Details', { id: item.id })}>
-            <CoffeeCard
-              {...item}
-              price={item.prices[0]}
-              buttonPressHandler={() => addToCart(item, item.prices[0])}
-            />
+    return (
+      <View>
+        <View style={styles.SectionHeader}>
+          <Text style={[styles.SectionTitle, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>{title}</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('GenericCategory', { collectionKey })}>
+            <Text style={[styles.AllButton, { color: isDarkMode ? COLORS.primaryOrangeHex : COLORS.primaryBlackHex }]}>All</Text>
           </TouchableOpacity>
-        )}
-      />
-    </>
-  );
+        </View>
+        <FlatList
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          data={filteredData}
+          contentContainerStyle={styles.FlatListContainer}
+          keyExtractor={(item) => item.id}
+          ItemSeparatorComponent={() => <View style={styles.CardSeparator} />}
+          renderItem={({ item }) => (
+            <TouchableOpacity onPress={() => navigation.push('Details', { id: item.id, collection: item.collection })}>
+              <CoffeeCard
+                {...item}
+                price={item.prices[0]}
+              />
+            </TouchableOpacity>
+          )}
+        />
+      </View>
+    );
+  };
 
   return (
     <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
       <StatusBar backgroundColor={isDarkMode ? COLORS.primaryBlackHex : COLORS.primaryWhiteHex} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.ScrollViewFlex}>
         <HeaderBar />
-        <Text style={styles.ScreenTitle}>Find the best{'\n'}beverages for you</Text>
+        <Text style={[styles.ScreenTitle, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+          Find the best{'\n'}beverages for you
+        </Text>
 
         {/* Search Input */}
         <View style={styles.InputContainerComponent}>
@@ -185,9 +165,12 @@ const HomeScreen = ({ navigation }) => {
           <TextInput
             placeholder="Find Your Beverage..."
             value={searchText}
-            onChangeText={setSearchText}
+            onChangeText={(text) => {
+              setSearchText(text);
+              handleSearch(text);
+            }}
             placeholderTextColor={COLORS.primaryLightGreyHex}
-            style={styles.TextInputContainer}
+            style={[styles.TextInputContainer, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}
           />
           {searchText.length > 0 && (
             <TouchableOpacity onPress={resetSearch}>
@@ -198,43 +181,72 @@ const HomeScreen = ({ navigation }) => {
 
         {/* Category Scroller */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.CategoryScrollViewStyle}>
-          {categories.map((category) => (
-            <View key={category} style={styles.CategoryScrollViewContainer}>
-              <TouchableOpacity
-                style={styles.CategoryScrollViewItem}
-                onPress={() => {
-                  ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
-                  setCategoryIndex({ index: categories.indexOf(category), category });
-                }}
-              >
-                <Text
-                  style={[styles.CategoryText, categoryIndex.category === category && { color: COLORS.primaryOrangeHex }]}
+          {categories.map((category) => {
+            // Only show category if it has items in the filtered data
+            const hasItems = Object.keys(CollectionDisplayNames)
+              .some(collection =>
+                filterData(category, beverages[collection] || []).length > 0 ||
+                category === 'All'
+              );
+
+            if (!hasItems) return null;
+
+            return (
+              <View key={category} style={styles.CategoryScrollViewContainer}>
+                <TouchableOpacity
+                  style={styles.CategoryScrollViewItem}
+                  onPress={() => {
+                    ListRef?.current?.scrollToOffset({ animated: true, offset: 0 });
+                    setCategoryIndex({ index: categories.indexOf(category), category });
+                  }}
                 >
-                  {category}
-                </Text>
-                {categoryIndex.category === category && <View style={styles.ActiveCategory} />}
-              </TouchableOpacity>
+                  <Text
+                    style={[styles.CategoryText, categoryIndex.category === category && { color: COLORS.primaryOrangeHex}]}
+                  >
+                    {category}
+                  </Text>
+                  {categoryIndex.category === category && <View style={styles.ActiveCategory} />}
+                </TouchableOpacity>
+              </View>
+            );
+          })}
+        </ScrollView>
+        <ScrollView>
+          {Object.keys(CollectionDisplayNames).map((collectionKey) => (
+            <View key={collectionKey}>
+              {renderFlatList(
+                beverages[collectionKey] || [],
+                CollectionDisplayNames[collectionKey],
+                collectionKey,
+                categoryIndex.category
+              )}
             </View>
           ))}
         </ScrollView>
-
-        {/* Render beverage lists */}
-        {[
-          { collection: 'coffee', title: 'Coffee' },
-          { collection: 'tea', title: 'Tea' },
-          { collection: 'blended_beverages', title: 'Blended Beverages' },
-          { collection: 'milk_juice_more', title: 'Milk, Juice & More' },
-        ].map(({ collection, title }) => (
-          <View key={collection}>
-            {renderFlatList(beverages[collection] || [], title, categoryIndex.category)}
-          </View>
-        ))}
       </ScrollView>
     </View>
   );
 };
 
+
 const styles = StyleSheet.create({
+  AllButton: {
+    fontSize: FONTSIZE.size_14,
+    color: COLORS.primaryOrangeHex,
+    fontFamily: FONTFAMILY.poppins_medium,
+  },
+  SectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.space_30,
+    marginTop: SPACING.space_20,
+  },
+  SectionTitle: {
+    fontSize: FONTSIZE.size_24,
+    fontFamily: FONTFAMILY.poppins_semibold,
+    color: COLORS.primaryWhiteHex,
+  },
   ScreenContainer: {
     flex: 1,
   },
@@ -266,7 +278,7 @@ const styles = StyleSheet.create({
   },
   CategoryScrollViewStyle: {
     paddingHorizontal: SPACING.space_36,
-    marginBottom: SPACING.space_20,
+    marginBottom: SPACING.space_4,
   },
   CategoryScrollViewContainer: {
     marginRight: SPACING.space_15,
@@ -296,6 +308,10 @@ const styles = StyleSheet.create({
   },
   FlatListContainer: {
     paddingLeft: SPACING.space_30,
+    paddingTop: SPACING.space_15,
+  },
+  CardSeparator: {
+    width: 20, // This adds 20 spacing between cards
   },
 });
 

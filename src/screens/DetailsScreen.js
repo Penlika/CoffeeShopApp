@@ -23,7 +23,6 @@ import CommentsAndRatings from '../components/CommentsAndRatings';
 const DetailScreen = ({ navigation }) => {
   const route = useRoute();
   const { id } = route.params;
-  console.log('DetailScreen Route Params:', route.params);
   const [beverage, setBeverage] = useState(null);
   const [price, setPrice] = useState(null);
   const [fullDesc, setFullDesc] = useState(false);
@@ -32,7 +31,7 @@ const DetailScreen = ({ navigation }) => {
   const [commentText, setCommentText] = useState('');
   const [cartItems, setCartItems] = useState([]);
   const [cartPrice, setCartPrice] = useState(0);
-  const [pendingRating, setPendingRating] = useState(0);
+  const [pendingRating, setPendingRating] = useState(5);
   const [userHasCommented, setUserHasCommented] = useState(false);
   const [userComment, setUserComment] = useState(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -144,6 +143,7 @@ const DetailScreen = ({ navigation }) => {
   
         // Create the cart item object with the prices array structure
         const cartItem = {
+          itemId: beverage.id,
           name: beverage.name,
           roasted: beverage.roasted || "Unknown",
           imagelink_square: beverage.imagelink_square,
@@ -239,9 +239,9 @@ const DetailScreen = ({ navigation }) => {
         const orderHistorySnapshot = await orderHistoryRef.get();
         const hasItemInOrderHistory = orderHistorySnapshot.docs.some(doc => {
           const orderItems = doc.data().items;
-          return orderItems.some(item => 
-            item.id === id || // Check if the exact ID matches
-            (item.name === beverage.name && item.type === beverage.type) // Alternatively, check name and type
+          return orderItems.some(item =>
+            item.itemId === id //||
+            // (item.name === beverage.name && item.type === beverage.type) // Alternatively, check name and type
           );
         });
         // Fetch additional user data (username, profilePic) from Firestore
@@ -461,7 +461,7 @@ const DetailScreen = ({ navigation }) => {
       </View>
     );
   };
-
+  
   return (
     <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
       <StatusBar backgroundColor={isDarkMode ? COLORS.primaryBlackHex : COLORS.primaryWhiteHex} barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -469,14 +469,14 @@ const DetailScreen = ({ navigation }) => {
       <ImageBackgroundInfo
           EnableBackHandler={true}
           imagelink_portrait={beverage.imagelink_square}
-          type="Coffee"
+          type={beverage.type}
           id={beverage.id}
           favourite={beverage.favourite}
           name={beverage.name}
+          ingredients={beverage.ingredients}
           special_ingredient={beverage.special_ingredient}
           average_rating={userRating}
           ratings_count={beverage.ratings_count}
-          roasted={beverage.roasted}
           BackHandler={() => navigation.goBack()}
           ToggleFavourite={() => {}}
         />

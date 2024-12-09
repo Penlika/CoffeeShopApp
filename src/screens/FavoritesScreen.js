@@ -141,7 +141,6 @@ const FavoritesScreen = ({ navigation }) => {
                         ingredients={data.ingredients}
                         average_rating={data.average_rating}
                         ratings_count={data.ratings_count}
-                        roasted={data.roasted}
                         description={data.description || ''}
                         favourite={true}
                         ToggleFavouriteItem={() => ToggleFavourite(true, data.id)}

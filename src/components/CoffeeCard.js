@@ -4,7 +4,6 @@ import {
   ImageBackground,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -23,7 +22,6 @@ const CoffeeCard = ({
   special_ingredient = 'Unknown', // Default fallback for `special_ingredient`
   average_rating = 0, // Default fallback for `average_rating`
   price = { price: '0.00' }, // Default fallback for `price`
-  buttonPressHandler,
 }) => {
   const priceValue = price?.price || '0.00'; // Ensure fallback for `priceValue`
 
@@ -52,27 +50,6 @@ const CoffeeCard = ({
         <Text style={styles.CardPriceCurrency}>
           $ <Text style={styles.CardPrice}>{priceValue}</Text>
         </Text>
-        <TouchableOpacity
-          onPress={() => {
-            buttonPressHandler({
-              id,
-              index,
-              type,
-              roasted,
-              imagelink_square,
-              name,
-              special_ingredient,
-              prices: [{ ...price, quantity: 1 }], // Ensure `prices` has a valid structure
-            });
-          }}>
-          <View style={styles.AddButtonContainer}>
-            <Icon
-              name="plus"
-              color={COLORS.primaryWhiteHex}
-              size={FONTSIZE.size_10}
-            />
-          </View>
-        </TouchableOpacity>
       </View>
     </LinearGradient>
   );

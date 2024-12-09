@@ -25,13 +25,8 @@ import auth from '@react-native-firebase/auth';
 
 const PaymentList = [
   {
-    name: 'Wallet',
-    icon: 'wallet',
-    isIcon: true,
-  },
-  {
     name: 'PayPal',
-    icon: 'paypal',
+    icon: require('../assets/paypal.png'),
     isIcon: false,
   },
 ];
@@ -131,11 +126,15 @@ const PaymentScreen = ({navigation, route}) => {
             onPress={() => {
               navigation.pop();
             }}>
-            <GradientBGIcon
-              name="left"
-              color={COLORS.primaryLightGreyHex}
-              size={FONTSIZE.size_16}
-            />
+            <View style={styles.Container}>
+              <LinearGradient
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}
+                style={styles.LinearGradientBG}>
+                <Icon name={"arrow-left"} color={"white"} size={20} />
+              </LinearGradient>
+            </View>
           </TouchableOpacity>
           <Text style={styles.HeaderText}>Payments</Text>
           <View style={styles.EmptyView} />
@@ -211,7 +210,7 @@ const PaymentScreen = ({navigation, route}) => {
                 paymentMode={paymentMode}
                 name={data.name}
                 icon={data.icon}
-                isIcon={data.isIcon}
+                isIcon={data.isIcon }
               />
             </TouchableOpacity>
           ))}
@@ -311,6 +310,23 @@ const styles = StyleSheet.create({
   },
   CreditCardDateContainer: {
     alignItems: 'flex-end',
+  },
+  Container: {
+    borderWidth: 2,
+    borderColor: COLORS.secondaryDarkGreyHex,
+    borderRadius: SPACING.space_12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondaryDarkGreyHex,
+    overflow: 'hidden',
+    height: SPACING.space_36,
+    width: SPACING.space_36,
+  },
+  LinearGradientBG: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: SPACING.space_12,
   },
 });
 

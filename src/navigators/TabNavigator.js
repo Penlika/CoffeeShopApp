@@ -15,6 +15,7 @@ import { COLORS } from '../theme/theme';
 import AccountSettingsScreen from '../screens/AccountSettingScreen';
 import PaymentScreen from '../screens/PaymentScreen';
 import PayPalWebViewScreen from '../screens/PayPalWebViewScreen';
+import GenericCategoryScreen from '../screens/GenericCategoryScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -26,6 +27,7 @@ const HomeStack = () => (
     <Stack.Screen name="Details" component={DetailsScreen} />
     <Stack.Screen name="ProfileScreen" component={ProfileScreen} />
     <Stack.Screen name="AccountSettings" component={AccountSettingsScreen}/>
+    <Stack.Screen name="GenericCategory" component={GenericCategoryScreen} />
   </Stack.Navigator>
 );
 
@@ -127,9 +129,12 @@ const TabNavigator = () => {
 
 const styles = StyleSheet.create({
   tabBar: {
-    height: 60,
-    backgroundColor: COLORS.primaryBlackRGBA,
+    height: 70,
+    backgroundColor: COLORS.primaryWhiteHex,
     borderTopWidth: 0,
+    paddingTop:12,
+    borderTopLeftRadius:30,
+    borderTopRightRadius:30,
   },
 });
 

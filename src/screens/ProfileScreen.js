@@ -59,7 +59,9 @@ const ProfileScreen = () => {
   return (
     <View style={[styles.ScreenContainer, { backgroundColor: isDarkMode ? COLORS.primaryBlackHex : COLORS.white }]}>
       <ScrollView contentContainerStyle={styles.ScrollViewFlex}>
-        <Text style={styles.ScreenTitle}>{t('profile')}</Text>
+        <Text style={[styles.ScreenTitle, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+          {t('profile')}
+        </Text>
 
         {/* Profile Picture */}
         <View style={styles.ProfilePicContainer}>
@@ -71,16 +73,22 @@ const ProfileScreen = () => {
         </View>
 
         <TouchableOpacity style={styles.Button} onPress={() => navigation.navigate('AccountSettings')}>
-          <Text style={styles.ButtonText}>{t('accountSettings')}</Text>
+          <Text style={[styles.ButtonText, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+            {t('accountSettings')}
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.Button} onPress={() => Alert.alert(t('helpSupport'), 'support@CoffeeShop.com')}>
-          <Text style={styles.ButtonText}>{t('helpSupport')}</Text>
+          <Text style={[styles.ButtonText, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+            {t('helpSupport')}
+          </Text>
         </TouchableOpacity>
 
         {/* Dark/Light Mode Switch */}
         <View style={styles.ModeSwitchContainer}>
-          <Text style={styles.ModeSwitchText}>{isDarkMode ? t('dark') : t('light')}</Text>
+          <Text style={[styles.ModeSwitchText, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+            {isDarkMode ? t('dark') : t('light')}
+          </Text>
           <Switch
             value={isDarkMode}
             onValueChange={() => handleThemeModeChange(isDarkMode ? 'light' : 'dark')}
@@ -91,7 +99,9 @@ const ProfileScreen = () => {
 
         {/* Language Picker */}
         <View style={styles.LanguageContainer}>
-          <Text style={styles.LanguageText}>{t('selectLanguage')}</Text>
+          <Text style={[styles.LanguageText, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+            {t('selectLanguage')}
+          </Text>
           <Picker
             selectedValue={selectedLanguage}
             style={styles.LanguagePicker}
@@ -105,7 +115,9 @@ const ProfileScreen = () => {
 
         {/* Logout Button */}
         <TouchableOpacity style={[styles.Button, styles.LogoutButton]} onPress={() => auth().signOut()}>
-          <Text style={styles.ButtonText}>{t('logout')}</Text>
+          <Text style={[styles.ButtonText, { color: isDarkMode ? COLORS.primaryWhiteHex : COLORS.primaryBlackHex }]}>
+            {t('logout')}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -124,7 +136,6 @@ const styles = StyleSheet.create({
   ScreenTitle: {
     fontSize: FONTSIZE.size_28,
     fontFamily: FONTFAMILY.poppins_semibold,
-    color: COLORS.primaryWhiteHex,
     marginBottom: SPACING.space_20,
   },
   ProfilePicContainer: {
@@ -148,7 +159,6 @@ const styles = StyleSheet.create({
   },
   ButtonText: {
     fontSize: FONTSIZE.size_16,
-    color: COLORS.primaryWhiteHex,
     fontFamily: FONTFAMILY.poppins_semibold,
   },
   ModeSwitchContainer: {
@@ -159,7 +169,6 @@ const styles = StyleSheet.create({
   },
   ModeSwitchText: {
     fontSize: FONTSIZE.size_16,
-    color: COLORS.primaryWhiteHex,
     fontFamily: FONTFAMILY.poppins_regular,
   },
   LanguageContainer: {
@@ -172,7 +181,6 @@ const styles = StyleSheet.create({
   },
   LanguageText: {
     fontSize: FONTSIZE.size_16,
-    color: COLORS.primaryWhiteHex,
     fontFamily: FONTFAMILY.poppins_regular,
     marginBottom: SPACING.space_10,
   },

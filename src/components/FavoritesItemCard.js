@@ -19,7 +19,6 @@ const FavoritesItemCard = ({
   ingredients,
   average_rating,
   ratings_count,
-  roasted,
   description,
   favourite,
   ToggleFavouriteItem,
@@ -37,7 +36,6 @@ const FavoritesItemCard = ({
         ingredients={ingredients}
         average_rating={average_rating}
         ratings_count={ratings_count}
-        roasted={roasted}
         ToggleFavourite={ToggleFavouriteItem}
       />
       {/* <LinearGradient

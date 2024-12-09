@@ -1,28 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ImageBackground } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome'; // Import FontAwesome icons
-import firestore from '@react-native-firebase/firestore'; // Firestore integration
-import auth from '@react-native-firebase/auth'; // Firebase Auth integration
+import Icon from 'react-native-vector-icons/FontAwesome';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import firestore from '@react-native-firebase/firestore';
+import auth from '@react-native-firebase/auth';
 import { BORDERRADIUS, COLORS, FONTFAMILY, FONTSIZE, SPACING } from '../theme/theme';
 
 const ImageBackgroundInfo = ({
   EnableBackHandler,
   imagelink_portrait,
-  type,
   id,
   name,
   special_ingredient,
   ingredients,
   average_rating,
   ratings_count,
-  roasted,
   BackHandler,
+  type,
 }) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const [realTimeRating, setRealTimeRating] = useState({
+    average_rating: average_rating,
+    ratings_count: ratings_count,
+  });
 
-  // Fetch the current favorite status for the item
+  // Mapping for collection to icon and display name
+  const COLLECTION_CONFIG = {
+    coffee: {
+      icon: 'coffee-maker',
+      displayName: 'Coffee',
+      iconLibrary: 'MaterialCommunityIcons',
+    },
+    tea: {
+      icon: 'tea',
+      displayName: 'Tea',
+      iconLibrary: 'MaterialCommunityIcons',
+    },
+    blended_beverages: {
+      icon: 'blender-outline',
+      displayName: 'Blended',
+      iconLibrary: 'MaterialCommunityIcons',
+    },
+    milk_juice_more: {
+      icon: 'cup',
+      displayName: 'Other',
+      iconLibrary: 'MaterialCommunityIcons',
+    },
+  };
+
+  // Fetch the current favorite status and real-time ratings
   useEffect(() => {
-    const fetchFavoriteStatus = async () => {
+    const fetchData = async () => {
       try {
         const currentUser = auth().currentUser;
 
@@ -32,21 +60,61 @@ const ImageBackgroundInfo = ({
         }
 
         const userId = currentUser.uid;
+        // Fetch favorite status
         const favoriteRef = firestore()
           .collection('users')
           .doc(userId)
           .collection('favorites')
           .doc(id);
 
-        const doc = await favoriteRef.get();
-        setIsFavorite(doc.exists); // Check if the item is already a favorite
+        const favoriteDoc = await favoriteRef.get();
+        const isFavoriteStatus = favoriteDoc.exists;
+        setIsFavorite(isFavoriteStatus);
+
+        // Real-time ratings listener
+        const itemRef = firestore()
+          .collection(type)
+          .doc(id);
+
+        const unsubscribe = itemRef.onSnapshot((doc) => {
+          if (doc.exists) {
+            const docData = doc.data();
+
+            // Log the rating update details
+            const updatedRating = {
+              average_rating: docData.average_rating || average_rating,
+              ratings_count: docData.ratings_count || ratings_count,
+            };
+
+            setRealTimeRating(updatedRating);
+          } else {
+            console.log('No document found for item');
+          }
+        }, (error) => {
+          console.error('Error fetching real-time ratings:', error);
+        });
+
+        // Listen for changes to the favorite status in real-time
+        const favoriteStatusListener = favoriteRef.onSnapshot((doc) => {
+          if (doc.exists) {
+            setIsFavorite(true);
+          } else {
+            setIsFavorite(false);
+          }
+        });
+
+        // Cleanup listeners on unmount
+        return () => {
+          unsubscribe();
+          favoriteStatusListener();
+        };
       } catch (error) {
-        console.error('Error fetching favorite status:', error);
+        console.error('Error in fetchData:', error);
       }
     };
 
-    fetchFavoriteStatus();
-  }, [id]);
+    fetchData();
+  }, [average_rating, type, id, name, ratings_count]);
 
   // Toggle favorite status
   const handleToggleFavorite = async () => {
@@ -71,19 +139,56 @@ const ImageBackgroundInfo = ({
         setIsFavorite(false);
       } else {
         // Add to favorites
-        await favoriteRef.set({
+        const favoriteData = {
           name,
           imagelink_square: imagelink_portrait,
           special_ingredient,
-          roasted,
-          type,
+          ingredients,
+          type: type,
           timestamp: firestore.FieldValue.serverTimestamp(),
-        });
+        };
+
+        await favoriteRef.set(favoriteData);
         setIsFavorite(true);
       }
     } catch (error) {
       console.error('Error updating favorites:', error);
     }
+  };
+
+  // Dynamic icon rendering
+  const renderTypeIcon = () => {
+    if (!type) {
+      console.warn("Collection name is undefined, using default icon");
+      return null; // Or render a default icon
+    }
+
+    const typeConfig = COLLECTION_CONFIG[type.toLowerCase()] || COLLECTION_CONFIG.coffee;
+    const { icon, displayName, iconLibrary } = typeConfig;
+
+    const IconComponent = {
+      'FontAwesome': Icon,
+      'MaterialCommunityIcons': MaterialCommunityIcons,
+      'FontAwesome5': (props) => <Icon name={icon} {...props} />,
+    }[iconLibrary];
+
+    return (
+      <View style={styles.ProperFirst}>
+        <IconComponent
+          name={icon}
+          size={type === 'Coffee' ? FONTSIZE.size_18 : FONTSIZE.size_24}
+          color={COLORS.primaryOrangeHex}
+        />
+        <Text
+          style={[
+            styles.PropertyTextFirst,
+            { marginTop: type === 'Coffee' ? SPACING.space_4 + SPACING.space_2 : 0 },
+          ]}
+        >
+          {displayName}
+        </Text>
+      </View>
+    );
   };
 
   return (
@@ -96,7 +201,10 @@ const ImageBackgroundInfo = ({
       >
         {EnableBackHandler ? (
           <View style={styles.ImageHeaderBarContainerWithBack}>
-            <TouchableOpacity onPress={() => BackHandler()}>
+            <TouchableOpacity onPress={() => {
+              console.log('Back button pressed');
+              BackHandler();
+            }}>
               <Icon name="arrow-left" color={COLORS.primaryLightGreyHex} size={FONTSIZE.size_16} />
             </TouchableOpacity>
             <TouchableOpacity onPress={handleToggleFavorite}>
@@ -127,41 +235,17 @@ const ImageBackgroundInfo = ({
                 <Text style={styles.ItemSubtitleText}>{special_ingredient}</Text>
               </View>
               <View style={styles.ItemPropertiesContainer}>
-                <View style={styles.ProperFirst}>
-                  <Icon
-                    name={type === 'tea' ? 'coffee' : 'leaf'}
-                    size={type === 'Bean' ? FONTSIZE.size_18 : FONTSIZE.size_24}
-                    color={COLORS.primaryOrangeHex}
-                  />
-                  <Text
-                    style={[
-                      styles.PropertyTextFirst,
-                      {
-                        marginTop: type === 'Bean' ? SPACING.space_4 + SPACING.space_2 : 0,
-                      },
-                    ]}
-                  >
-                    {type}
-                  </Text>
-                </View>
-                <View style={styles.ProperFirst}>
-                  <Icon
-                    name={type === 'Bean' ? 'map-marker' : 'tint'}
-                    size={FONTSIZE.size_16}
-                    color={COLORS.primaryOrangeHex}
-                  />
-                  <Text style={styles.PropertyTextLast}>{ingredients}</Text>
-                </View>
+                {renderTypeIcon()}
               </View>
             </View>
             <View style={styles.InfoContainerRow}>
               <View style={styles.RatingContainer}>
                 <Icon name="star" color={COLORS.primaryOrangeHex} size={FONTSIZE.size_20} />
-                <Text style={styles.RatingText}>{average_rating}</Text>
-                <Text style={styles.RatingCountText}>({ratings_count})</Text>
+                <Text style={styles.RatingText}>{realTimeRating.average_rating}</Text>
+                <Text style={styles.RatingCountText}>({realTimeRating.ratings_count})</Text>
               </View>
               <View style={styles.RoastedContainer}>
-                <Text style={styles.RoastedText}>{roasted}</Text>
+                <Text style={styles.RoastedText}>{ingredients}</Text>
               </View>
             </View>
           </View>
@@ -170,6 +254,7 @@ const ImageBackgroundInfo = ({
     </View>
   );
 };
+
 
 
 const styles = StyleSheet.create({
@@ -268,7 +353,7 @@ const styles = StyleSheet.create({
   },
   RoastedText: {
     fontFamily: FONTFAMILY.poppins_regular,
-    fontSize: FONTSIZE.size_10,
+    fontSize: FONTSIZE.size_12,
     color: COLORS.primaryWhiteHex,
   },
 });

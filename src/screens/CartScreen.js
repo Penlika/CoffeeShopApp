@@ -225,7 +225,7 @@ const CartScreen = ({ navigation }) => {
                     onPress={() => {
                       navigation.push('Details', {
                         index: data.index,
-                        id: data.id,
+                        id: data.itemId,
                         type: data.type,
                       });
                     }}
