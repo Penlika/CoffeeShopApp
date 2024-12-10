@@ -8,23 +8,63 @@ import {
   Alert,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import firestore from '@react-native-firebase/firestore'; // Import Firestore
+import firestore from '@react-native-firebase/firestore';
 import { COLORS, FONTSIZE, SPACING } from '../theme/theme';
 
 const RegisterScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [username, setUsername] = useState(''); // New state for username
+  const [username, setUsername] = useState('');
 
+  const validatePassword = (password) => {
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=.*[0-9]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+      const errors = [];
+      if (password.length < 8) {
+        errors.push('Password must be at least 8 characters long');
+      }
+      if (!/(?=.*[A-Z])/.test(password)) {
+        errors.push('Password must contain at least one uppercase letter');
+      }
+      if (!/(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/.test(password)) {
+        errors.push('Password must contain at least one special character');
+      }
+      if (!/(?=.*[0-9])/.test(password)) {
+        errors.push('Password must contain at least one number');
+      }
+      return errors;
+    }
+    return [];
+  };
   const handleRegister = async () => {
-    if (!email || !password || !confirmPassword || !username) {
-      Alert.alert('Error', 'All fields are required.');
+    if (!username) {
+      Alert.alert('Error', 'Username is required');
+      return;
+    }
+    if (!email) {
+      Alert.alert('Error', 'Email is required');
+      return;
+    }
+    if (!password) {
+      Alert.alert('Error', 'Password is required');
+      return;
+    }
+    if (!confirmPassword) {
+      Alert.alert('Error', 'Confirm Password is required');
       return;
     }
 
+    // Validate password
+    const passwordErrors = validatePassword(password);
+    if (passwordErrors.length > 0) {
+      Alert.alert('Password Requirements', passwordErrors.join('\n'));
+      return;
+    }
+
+    // Check if passwords match
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match.');
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -77,14 +117,14 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Username"
         value={username}
         onChangeText={setUsername}
-        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
+        placeholderTextColor={COLORS.primaryWhiteHex}
       />
       <TextInput
         style={styles.input}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
-        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
+        placeholderTextColor={COLORS.primaryWhiteHex}
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -93,7 +133,7 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
-        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
+        placeholderTextColor={COLORS.primaryWhiteHex}
         secureTextEntry
       />
       <TextInput
@@ -101,7 +141,7 @@ const RegisterScreen = ({ navigation }) => {
         placeholder="Confirm Password"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
-        placeholderTextColor={COLORS.primaryWhiteHex} // Set placeholder text color to white
+        placeholderTextColor={COLORS.primaryWhiteHex}
         secureTextEntry
       />
       <TouchableOpacity style={styles.button} onPress={handleRegister}>

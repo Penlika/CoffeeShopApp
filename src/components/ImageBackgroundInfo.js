@@ -232,7 +232,7 @@ const ImageBackgroundInfo = ({
             <View style={styles.InfoContainerRow}>
               <View>
                 <Text style={styles.ItemTitleText}>{name}</Text>
-                <Text style={styles.ItemSubtitleText}>{special_ingredient}</Text>
+                <Text style={styles.ItemSubtitleText}>{ingredients}</Text>
               </View>
               <View style={styles.ItemPropertiesContainer}>
                 {renderTypeIcon()}
@@ -245,7 +245,7 @@ const ImageBackgroundInfo = ({
                 <Text style={styles.RatingCountText}>({realTimeRating.ratings_count})</Text>
               </View>
               <View style={styles.RoastedContainer}>
-                <Text style={styles.RoastedText}>{ingredients}</Text>
+                <Text style={styles.RoastedText}>{special_ingredient}</Text>
               </View>
             </View>
           </View>

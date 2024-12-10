@@ -18,22 +18,25 @@ const ProfilePic = () => {
       // Set up real-time listener to watch for changes in the user's profile
       const userRef = firestore().collection('users').doc(user.uid);
       
-      const unsubscribe = userRef.onSnapshot((docSnapshot) => {
-        if (docSnapshot.exists) {
-          const { profilePic, username } = docSnapshot.data();
-          setProfilePicture(profilePic || 'https://via.placeholder.com/150');
-          setUsername(username || 'Unknown User');
-        } else {
+      const unsubscribe = userRef.onSnapshot(
+        (docSnapshot) => {
+          if (docSnapshot.exists) {
+            const { profilePic, username } = docSnapshot.data();
+            setProfilePicture(profilePic || 'https://via.placeholder.com/150');
+            setUsername(username || 'Unknown User');
+          } else {
+            setProfilePicture('https://via.placeholder.com/150');
+            setUsername('Unknown User');
+          }
+          setIsLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching profile data:", error);
           setProfilePicture('https://via.placeholder.com/150');
           setUsername('Unknown User');
+          setIsLoading(false);
         }
-        setIsLoading(false);
-      }, (error) => {
-        console.error("Error fetching profile data:", error);
-        setProfilePicture('https://via.placeholder.com/150');
-        setUsername('Unknown User');
-        setIsLoading(false);
-      });
+      );
 
       // Clean up the listener on unmount
       return () => unsubscribe();
@@ -42,11 +45,10 @@ const ProfilePic = () => {
     }
   }, []);
 
-  // Function to truncate the username if it exceeds 7 words
+  // Function to truncate the username if it exceeds 7 characters
   const truncateUsername = (name) => {
-    const words = name.split(' ');
-    if (words.length > 7) {
-      return words.slice(0, 7).join(' ') + '...';
+    if (name.length > 7) {
+      return name.slice(0, 7) + '...';
     }
     return name;
   };

@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,6 +6,8 @@ import {
   StatusBar,
   ScrollView,
   TouchableOpacity,
+  TextInput,
+  Alert,
 } from 'react-native';
 import {
   BORDERRADIUS,
@@ -14,11 +16,10 @@ import {
   FONTSIZE,
   SPACING,
 } from '../theme/theme';
-import GradientBGIcon from '../components/GradientBGIcon';
-import PaymentMethod from '../components/PaymentMethod';
-import PaymentFooter from '../components/PaymentFooter';
 import LinearGradient from 'react-native-linear-gradient';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import PaymentMethod from '../components/PaymentMethod';
+import PaymentFooter from '../components/PaymentFooter';
 import PopUpAnimation from '../components/PopUpAnimation';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -34,8 +35,88 @@ const PaymentList = [
 const PaymentScreen = ({navigation, route}) => {
   const [paymentMode, setPaymentMode] = useState('Credit Card');
   const [showAnimation, setShowAnimation] = useState(false);
+  const [isEditingCreditCard, setIsEditingCreditCard] = useState(false);
+  
+  // Credit Card State
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardHolderName, setCardHolderName] = useState('');
+  const [expiryDate, setExpiryDate] = useState('');
+  const [cvv, setCvv] = useState('');
 
   const userId = auth().currentUser?.uid;
+
+  // Fetch existing credit card data
+  useEffect(() => {
+    const fetchCreditCardData = async () => {
+      try {
+        const userDoc = await firestore()
+          .collection('users')
+          .doc(userId)
+          .get();
+        
+        const creditCardData = userDoc.data()?.creditCard;
+        if (creditCardData) {
+          setCardNumber(creditCardData.cardNumber || '');
+          setCardHolderName(creditCardData.cardHolderName || '');
+          setExpiryDate(creditCardData.expiryDate || '');
+          setCvv(creditCardData.cvv || '');
+        }
+      } catch (error) {
+        console.error('Error fetching credit card data:', error);
+      }
+    };
+
+    if (userId) {
+      fetchCreditCardData();
+    }
+  }, [userId]);
+
+  // Save Credit Card Information
+  const saveCreditCardInfo = async () => {
+    // Validate inputs
+    if (!cardNumber || !cardHolderName || !expiryDate || !cvv) {
+      Alert.alert('Error', 'Please fill in all credit card details');
+      return;
+    }
+
+    // Validate card number (assuming 16 digits)
+    if (!/^\d{16}$/.test(cardNumber)) {
+      Alert.alert('Error', 'Invalid card number. Must be 16 digits.');
+      return;
+    }
+
+    // Validate expiry date (MM/YY format)
+    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      Alert.alert('Error', 'Invalid expiry date. Use MM/YY format.');
+      return;
+    }
+
+    // Validate CVV (3 or 4 digits)
+    if (!/^\d{3,4}$/.test(cvv)) {
+      Alert.alert('Error', 'Invalid CVV. Must be 3 or 4 digits.');
+      return;
+    }
+
+    try {
+      await firestore()
+        .collection('users')
+        .doc(userId)
+        .update({
+          creditCard: {
+            cardNumber,
+            cardHolderName,
+            expiryDate,
+            cvv
+          }
+        });
+      
+      setIsEditingCreditCard(false);
+      Alert.alert('Success', 'Credit card information saved');
+    } catch (error) {
+      console.error('Error saving credit card info:', error);
+      Alert.alert('Error', 'Failed to save credit card information');
+    }
+  };
 
   const calculateCartPrice = async () => {
     try {
@@ -62,20 +143,20 @@ const PaymentScreen = ({navigation, route}) => {
         .doc(userId)
         .collection('cart')
         .get();
-
+  
       const orderItems = cartSnapshot.docs.map(doc => doc.data());
       const batch = firestore().batch();
-
+  
       orderItems.forEach(item => {
         const orderDoc = firestore()
           .collection('users')
           .doc(userId)
           .collection('orderHistory')
           .doc();
-
+  
         batch.set(orderDoc, item);
       });
-
+  
       const cartCollection = firestore()
         .collection('users')
         .doc(userId)
@@ -84,27 +165,223 @@ const PaymentScreen = ({navigation, route}) => {
       cartSnapshot.docs.forEach(doc => {
         batch.delete(cartCollection.doc(doc.id));
       });
-
+  
       await batch.commit();
     } catch (error) {
       console.error('Error moving items to order history:', error);
     }
   };
 
+  const handleExpiryDateChange = (text) => {
+    // Remove any non-digit characters
+    const cleanText = text.replace(/\D/g, '');
+    
+    if (cleanText.length <= 4) {
+      // First two digits (month)
+      if (cleanText.length <= 2) {
+        // Restrict month to 01-12
+        const month = parseInt(cleanText, 10);
+        if (month > 12) {
+          return;
+        }
+      }
+      
+      // Add '/' after first two digits
+      if (cleanText.length > 2) {
+        const formattedText = `${cleanText.slice(0, 2)}/${cleanText.slice(2)}`;
+        
+        // Additional validation for days based on month
+        const month = parseInt(cleanText.slice(0, 2), 10);
+        const day = parseInt(cleanText.slice(2), 10);
+        
+        // Day validation
+        const daysInMonth = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        if (day > daysInMonth[month - 1]) {
+          return;
+        }
+        
+        setExpiryDate(formattedText);
+      } else {
+        setExpiryDate(cleanText);
+      }
+    }
+  };
+
   const buttonPressHandler = async () => {
-    if (paymentMode === 'PayPal') {
-      navigation.navigate('PayPalWebView', { 
-        amount: route.params.amount 
-      });
+    // Check if credit card details are empty before proceeding
+    if (paymentMode === 'Credit Card' && (!cardNumber || !cardHolderName || !expiryDate || !cvv)) {
+      setIsEditingCreditCard(true);
+      Alert.alert('Credit Card Required', 'Please enter your credit card details before proceeding.');
       return;
     }
-    setShowAnimation(true);
-    await addToOrderHistoryListFromCart();
-    await calculateCartPrice();
-    setTimeout(() => {
+  
+    try {
+      if (!userId) {
+        Alert.alert('Error', 'User not authenticated');
+        return;
+      }
+  
+      // Fetch cart items
+      const userRef = firestore().collection('users').doc(userId);
+      const cartSnapshot = await userRef.collection('cartItems').get();
+  
+      if (cartSnapshot.empty) {
+        Alert.alert('Error', 'Your cart is empty');
+        return;
+      }
+  
+      // PayPal navigation remains the same
+      if (paymentMode === 'PayPal') {
+        navigation.navigate('PayPalWebView', { 
+          amount: route.params.amount 
+        });
+        return;
+      }
+  
+      // Process Credit Card Payment
+      const batch = firestore().batch();
+      const cartItems = cartSnapshot.docs;
+  
+      // Create order in order history
+      const orderHistoryRef = userRef.collection('orderHistory').doc();
+      batch.set(orderHistoryRef, {
+        items: cartItems.map(doc => doc.data()),
+        totalAmount: route.params.amount,
+        orderedAt: firestore.FieldValue.serverTimestamp(),
+        paymentStatus: 'completed',
+        paymentMethod: 'Credit Card',
+        cardLastFourDigits: cardNumber.slice(-4)
+      });
+  
+      // Delete items from cart
+      cartItems.forEach(doc => {
+        batch.delete(userRef.collection('cartItems').doc(doc.id));
+      });
+  
+      // Show loading animation
+      setShowAnimation(true);
+  
+      // Commit the batch
+      await batch.commit();
+  
+      // Delay and navigation
+      setTimeout(() => {
+        setShowAnimation(false);
+        navigation.navigate('History');
+      }, 2000);
+  
+    } catch (error) {
+      console.error('Payment process error:', error);
       setShowAnimation(false);
-      navigation.navigate('History');
-    }, 2000);
+      Alert.alert('Payment Error', `An error occurred during payment: ${error.message}`);
+    }
+  };
+
+  const renderCreditCardContent = () => {
+    if (isEditingCreditCard) {
+      return (
+        <View style={styles.CreditCardBG}>
+          <TextInput
+            style={styles.CreditCardInput}
+            placeholder="Card Number"
+            placeholderTextColor={COLORS.secondaryLightGreyHex}
+            value={cardNumber}
+            onChangeText={setCardNumber}
+            keyboardType="numeric"
+            maxLength={16}
+          />
+          <TextInput
+            style={styles.CreditCardInput}
+            placeholder="Card Holder Name"
+            placeholderTextColor={COLORS.secondaryLightGreyHex}
+            value={cardHolderName}
+            onChangeText={setCardHolderName}
+          />
+          <View style={styles.CreditCardRowInput}>
+            <TextInput
+              style={[styles.CreditCardInput, {flex: 1, marginRight: 10}]}
+              placeholder="Expiry Date (MM/YY)"
+              placeholderTextColor={COLORS.secondaryLightGreyHex}
+              value={expiryDate}
+              onChangeText={handleExpiryDateChange}
+              keyboardType="numeric"
+              maxLength={5}
+            />
+            <TextInput
+              style={[styles.CreditCardInput, {flex: 1}]}
+              placeholder="CVV"
+              placeholderTextColor={COLORS.secondaryLightGreyHex}
+              value={cvv}
+              onChangeText={setCvv}
+              keyboardType="numeric"
+              maxLength={4}
+              secureTextEntry
+            />
+          </View>
+          <TouchableOpacity 
+            style={styles.SaveButton} 
+            onPress={saveCreditCardInfo}
+          >
+            <Text style={styles.SaveButtonText}>Save</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.CreditCardBG}>
+        <LinearGradient
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.LinearGradientStyle}
+          colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}>
+          <View style={styles.CreditCardRow}>
+            <Icon
+              name="credit-card"
+              size={FONTSIZE.size_20 * 2}
+              color={COLORS.primaryOrangeHex}
+            />
+            <TouchableOpacity onPress={() => setIsEditingCreditCard(true)}>
+              <Icon
+                name="edit"
+                size={FONTSIZE.size_20}
+                color={COLORS.primaryWhiteHex}
+              />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.CreditCardNumberContainer}>
+            {cardNumber ? (
+              <>
+                <Text style={styles.CreditCardNumber}>{cardNumber.slice(0,4)}</Text>
+                <Text style={styles.CreditCardNumber}>{cardNumber.slice(4,8)}</Text>
+                <Text style={styles.CreditCardNumber}>{cardNumber.slice(8,12)}</Text>
+                <Text style={styles.CreditCardNumber}>{cardNumber.slice(12)}</Text>
+              </>
+            ) : (
+              <Text style={styles.PlaceholderText}>No card details</Text>
+            )}
+          </View>
+          <View style={styles.CreditCardRow}>
+            <View style={styles.CreditCardNameContainer}>
+              <Text style={styles.CreditCardNameSubitle}>
+                Card Holder Name
+              </Text>
+              <Text style={styles.CreditCardNameTitle}>
+                {cardHolderName || 'Not set'}
+              </Text>
+            </View>
+            <View style={styles.CreditCardDateContainer}>
+              <Text style={styles.CreditCardNameSubitle}>
+                Expiry Date
+              </Text>
+              <Text style={styles.CreditCardNameTitle}>
+                {expiryDate || 'Not set'}
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    );
   };
 
   return (
@@ -156,48 +433,7 @@ const PaymentScreen = ({navigation, route}) => {
                 },
               ]}>
               <Text style={styles.CreditCardTitle}>Credit Card</Text>
-              <View style={styles.CreditCardBG}>
-                <LinearGradient
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.LinearGradientStyle}
-                  colors={[COLORS.primaryGreyHex, COLORS.primaryBlackHex]}>
-                  <View style={styles.CreditCardRow}>
-                    <Icon
-                      name="credit-card"
-                      size={FONTSIZE.size_20 * 2}
-                      color={COLORS.primaryOrangeHex}
-                    />
-                    <Icon
-                      name="cc-visa"
-                      size={FONTSIZE.size_30 * 2}
-                      color={COLORS.primaryWhiteHex}
-                    />
-                  </View>
-                  <View style={styles.CreditCardNumberContainer}>
-                    <Text style={styles.CreditCardNumber}>3879</Text>
-                    <Text style={styles.CreditCardNumber}>8923</Text>
-                    <Text style={styles.CreditCardNumber}>6745</Text>
-                    <Text style={styles.CreditCardNumber}>4638</Text>
-                  </View>
-                  <View style={styles.CreditCardRow}>
-                    <View style={styles.CreditCardNameContainer}>
-                      <Text style={styles.CreditCardNameSubitle}>
-                        Card Holder Name
-                      </Text>
-                      <Text style={styles.CreditCardNameTitle}>
-                        Robert Evans
-                      </Text>
-                    </View>
-                    <View style={styles.CreditCardDateContainer}>
-                      <Text style={styles.CreditCardNameSubitle}>
-                        Expiry Date
-                      </Text>
-                      <Text style={styles.CreditCardNameTitle}>02/30</Text>
-                    </View>
-                  </View>
-                </LinearGradient>
-              </View>
+              {renderCreditCardContent()}
             </View>
           </TouchableOpacity>
           {PaymentList.map(data => (
@@ -227,6 +463,37 @@ const PaymentScreen = ({navigation, route}) => {
 };
 
 const styles = StyleSheet.create({
+  // ... existing styles ...
+  CreditCardInput: {
+    backgroundColor: COLORS.primaryGreyHex,
+    color: COLORS.primaryWhiteHex,
+    padding: SPACING.space_10,
+    borderRadius: BORDERRADIUS.radius_10,
+    marginBottom: SPACING.space_10,
+    fontFamily: FONTFAMILY.poppins_regular,
+    fontSize: FONTSIZE.size_14,
+  },
+  CreditCardRowInput: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.space_10,
+  },
+  SaveButton: {
+    backgroundColor: COLORS.primaryOrangeHex,
+    padding: SPACING.space_10,
+    borderRadius: BORDERRADIUS.radius_10,
+    alignItems: 'center',
+  },
+  SaveButtonText: {
+    color: COLORS.primaryWhiteHex,
+    fontFamily: FONTFAMILY.poppins_semibold,
+    fontSize: FONTSIZE.size_16,
+  },
+  PlaceholderText: {
+    color: COLORS.secondaryLightGreyHex,
+    fontFamily: FONTFAMILY.poppins_regular,
+    fontSize: FONTSIZE.size_16,
+  },
   ScreenContainer: {
     flex: 1,
     backgroundColor: COLORS.primaryBlackHex,
